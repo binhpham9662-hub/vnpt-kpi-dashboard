@@ -441,6 +441,7 @@ def render_charts_page():
             Tong_SM3=('SM3', 'sum'), Tong_SM4=('SM4', 'sum'),
             Tong_SM5=('SM5', 'sum'), Tong_SM6=('SM6', 'sum')
         ).reset_index()
+        tt_daily['Ngay_Bao_Cao'] = pd.to_datetime(tt_daily['Ngay_Bao_Cao'])
         
         tt_daily['C1.1 BRCĐ không tính hẹn (%)'] = (tt_daily['Tong_SM3'] / tt_daily['Tong_SM4'] * 100).fillna(0)
         tt_daily['C1.2 BRCĐ lặp lại (%)'] = (tt_daily['Tong_SM5'] / tt_daily['Tong_SM6'] * 100).fillna(0)
@@ -478,6 +479,7 @@ def render_charts_page():
             Tong_SM3=('SM3', 'sum'), Tong_SM4=('SM4', 'sum'),
             Tong_SM5=('SM5', 'sum'), Tong_SM6=('SM6', 'sum')
         ).reset_index()
+        to_daily['Ngay_Bao_Cao'] = pd.to_datetime(to_daily['Ngay_Bao_Cao'])
         
         to_daily['C1.1 BRCĐ không tính hẹn (%)'] = (to_daily['Tong_SM3'] / to_daily['Tong_SM4'] * 100).fillna(0)
         to_daily['C1.2 BRCĐ lặp lại (%)'] = (to_daily['Tong_SM5'] / to_daily['Tong_SM6'] * 100).fillna(0)
