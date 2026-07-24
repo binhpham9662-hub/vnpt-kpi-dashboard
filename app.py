@@ -105,14 +105,17 @@ def render_main_page():
     
     # Tính tỷ lệ các ngày trước
     y_ty_le_brcd = (df['Y_SM3'].sum() / df['Y_SM4'].sum() * 100) if df['Y_SM4'].sum() > 0 else 0
+    d2_ty_le_brcd = (df['D2_SM3'].sum() / df['D2_SM4'].sum() * 100) if df['D2_SM4'].sum() > 0 else 0
     d3_ty_le_brcd = (df['D3_SM3'].sum() / df['D3_SM4'].sum() * 100) if df['D3_SM4'].sum() > 0 else 0
     d7_ty_le_brcd = (df['D7_SM3'].sum() / df['D7_SM4'].sum() * 100) if df['D7_SM4'].sum() > 0 else 0
 
     y_ty_le_clcd = (df['Y_SM1'].sum() / df['Y_SM2'].sum() * 100) if df['Y_SM2'].sum() > 0 else 0
+    d2_ty_le_clcd = (df['D2_SM1'].sum() / df['D2_SM2'].sum() * 100) if df['D2_SM2'].sum() > 0 else 0
     d3_ty_le_clcd = (df['D3_SM1'].sum() / df['D3_SM2'].sum() * 100) if df['D3_SM2'].sum() > 0 else 0
     d7_ty_le_clcd = (df['D7_SM1'].sum() / df['D7_SM2'].sum() * 100) if df['D7_SM2'].sum() > 0 else 0
 
     y_ty_le_brcd_lap = (df['Y_SM5'].sum() / df['Y_SM6'].sum() * 100) if df['Y_SM6'].sum() > 0 else 0
+    d2_ty_le_brcd_lap = (df['D2_SM5'].sum() / df['D2_SM6'].sum() * 100) if df['D2_SM6'].sum() > 0 else 0
     d3_ty_le_brcd_lap = (df['D3_SM5'].sum() / df['D3_SM6'].sum() * 100) if df['D3_SM6'].sum() > 0 else 0
     d7_ty_le_brcd_lap = (df['D7_SM5'].sum() / df['D7_SM6'].sum() * 100) if df['D7_SM6'].sum() > 0 else 0
 
@@ -126,7 +129,7 @@ def render_main_page():
             delta="Mục tiêu: ≥ 85%",
             delta_color="normal" if ty_le_brcd >= 85 else "inverse"
         )
-        st.caption(f"🕒 1 ngày trước: **{y_ty_le_brcd:.2f}%**<br>🕒 3 ngày trước: **{d3_ty_le_brcd:.2f}%**<br>🕒 7 ngày trước: **{d7_ty_le_brcd:.2f}%**", unsafe_allow_html=True)
+        st.caption(f"🕒 1 ngày trước: **{y_ty_le_brcd:.2f}%**<br>🕒 2 ngày trước: **{d2_ty_le_brcd:.2f}%**<br>🕒 2 ngày trước: **{d2_ty_le_brcd_lap:.2f}%**<br>🕒 2 ngày trước: **{d2_ty_le_clcd:.2f}%**<br>🕒 3 ngày trước: **{d3_ty_le_brcd:.2f}%**<br>🕒 7 ngày trước: **{d7_ty_le_brcd:.2f}%**", unsafe_allow_html=True)
         if st.button("👁 Xem bảng BRCĐ", use_container_width=True):
             st.session_state.page = 'table_brcd'
             st.rerun()
@@ -270,6 +273,13 @@ def render_team_table(metric_type):
             })
             st.dataframe(inc_df, use_container_width=True, hide_index=True)
             
+            st.markdown("*So với 2 ngày trước*")
+            top_3_inc_2d = valid_individuals.sort_values('Tang_Khong_Dat_BRCD_2d', ascending=False).head(3)
+            inc_df_2d = pd.DataFrame({
+                'Nhân viên': top_3_inc_2d['Ten_NV'] + ' (' + top_3_inc_2d['To_KTDB'] + ')',
+                'Phiếu tăng': top_3_inc_2d['Tang_Khong_Dat_BRCD_2d'].apply(lambda x: f"+{x:.0f}" if pd.notna(x) and x > 0 else f"{x:.0f}")
+            })
+            st.dataframe(inc_df_2d, use_container_width=True, hide_index=True)
             st.markdown("*So với 3 ngày trước*")
             top_3_inc_3d = valid_individuals.sort_values('Tang_Khong_Dat_BRCD_3d', ascending=False).head(3)
             inc_df_3d = pd.DataFrame({
@@ -295,6 +305,13 @@ def render_team_table(metric_type):
             })
             st.dataframe(inc_df, use_container_width=True, hide_index=True)
             
+            st.markdown("*So với 2 ngày trước*")
+            top_3_inc_2d = valid_individuals.sort_values('Tang_Khong_Dat_CLCD_2d', ascending=False).head(3)
+            inc_df_2d = pd.DataFrame({
+                'Nhân viên': top_3_inc_2d['Ten_NV'] + ' (' + top_3_inc_2d['To_KTDB'] + ')',
+                'Phiếu tăng': top_3_inc_2d['Tang_Khong_Dat_CLCD_2d'].apply(lambda x: f"+{x:.0f}" if pd.notna(x) and x > 0 else f"{x:.0f}")
+            })
+            st.dataframe(inc_df_2d, use_container_width=True, hide_index=True)
             st.markdown("*So với 3 ngày trước*")
             top_3_inc_3d = valid_individuals.sort_values('Tang_Khong_Dat_CLCD_3d', ascending=False).head(3)
             inc_df_3d = pd.DataFrame({
@@ -320,6 +337,13 @@ def render_team_table(metric_type):
             })
             st.dataframe(inc_df, use_container_width=True, hide_index=True)
             
+            st.markdown("*So với 2 ngày trước*")
+            top_3_inc_2d = valid_individuals.sort_values('Tang_Khong_Dat_BRCD_Lap_2d', ascending=False).head(3)
+            inc_df_2d = pd.DataFrame({
+                'Nhân viên': top_3_inc_2d['Ten_NV'] + ' (' + top_3_inc_2d['To_KTDB'] + ')',
+                'Phiếu lặp tăng': top_3_inc_2d['Tang_Khong_Dat_BRCD_Lap_2d'].apply(lambda x: f"+{x:.0f}" if pd.notna(x) and x > 0 else f"{x:.0f}")
+            })
+            st.dataframe(inc_df_2d, use_container_width=True, hide_index=True)
             st.markdown("*So với 3 ngày trước*")
             top_3_inc_3d = valid_individuals.sort_values('Tang_Khong_Dat_BRCD_Lap_3d', ascending=False).head(3)
             inc_df_3d = pd.DataFrame({

@@ -278,6 +278,18 @@ def job():
     logging.info("Chạy tác vụ tự động...")
     try:
         perform_scraping()
+        
+        # Tự động đẩy DB lên GitHub sau khi cào thành công
+        import subprocess
+        bat_path = os.path.join(os.path.dirname(__file__), "sync_to_web.bat")
+        if os.path.exists(bat_path):
+            logging.info("Bắt đầu đồng bộ dữ liệu lên Web (GitHub)...")
+            try:
+                subprocess.run([bat_path], check=True, shell=True)
+                logging.info("Đồng bộ lên Web thành công!")
+            except Exception as e:
+                logging.error(f"Lỗi khi đồng bộ lên Web: {e}")
+                
     except Exception as e:
         logging.error(f"Lỗi hệ thống: {e}")
 

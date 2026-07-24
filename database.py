@@ -220,6 +220,7 @@ def get_kpi_for_date(target_date_str):
     """
     target_date = datetime.strptime(target_date_str, '%Y-%m-%d')
     yesterday_str = (target_date - timedelta(days=1)).strftime('%Y-%m-%d')
+    day2_str = (target_date - timedelta(days=2)).strftime('%Y-%m-%d')
     day3_str = (target_date - timedelta(days=3)).strftime('%Y-%m-%d')
     day7_str = (target_date - timedelta(days=7)).strftime('%Y-%m-%d')
     
@@ -229,15 +230,17 @@ def get_kpi_for_date(target_date_str):
         t.Ma_NV, t.Ten_NV, t.To_KTDB,
         t.SM1, t.SM2, t.SM3, t.SM4, t.SM5, t.SM6,
         y.SM1 as Y_SM1, y.SM2 as Y_SM2, y.SM3 as Y_SM3, y.SM4 as Y_SM4, y.SM5 as Y_SM5, y.SM6 as Y_SM6,
+        d2.SM1 as D2_SM1, d2.SM2 as D2_SM2, d2.SM3 as D2_SM3, d2.SM4 as D2_SM4, d2.SM5 as D2_SM5, d2.SM6 as D2_SM6,
         d3.SM1 as D3_SM1, d3.SM2 as D3_SM2, d3.SM3 as D3_SM3, d3.SM4 as D3_SM4, d3.SM5 as D3_SM5, d3.SM6 as D3_SM6,
         d7.SM1 as D7_SM1, d7.SM2 as D7_SM2, d7.SM3 as D7_SM3, d7.SM4 as D7_SM4, d7.SM5 as D7_SM5, d7.SM6 as D7_SM6
     FROM kpi_daily t
     LEFT JOIN kpi_daily y ON t.Ma_NV = y.Ma_NV AND y.Ngay_Bao_Cao = ?
+    LEFT JOIN kpi_daily d2 ON t.Ma_NV = d2.Ma_NV AND d2.Ngay_Bao_Cao = ?
     LEFT JOIN kpi_daily d3 ON t.Ma_NV = d3.Ma_NV AND d3.Ngay_Bao_Cao = ?
     LEFT JOIN kpi_daily d7 ON t.Ma_NV = d7.Ma_NV AND d7.Ngay_Bao_Cao = ?
     WHERE t.Ngay_Bao_Cao = ?
     """
-    df = pd.read_sql_query(query, conn, params=(yesterday_str, day3_str, day7_str, target_date_str))
+    df = pd.read_sql_query(query, conn, params=(yesterday_str, day2_str, day3_str, day7_str, target_date_str))
     conn.close()
     
     # Fill NA for SM columns to avoid NoneType errors
@@ -247,17 +250,20 @@ def get_kpi_for_date(target_date_str):
     # Calculate deltas for BRCĐ (SM3/SM4)
     df['Phieu_Khong_Dat_BRCD'] = df['SM4'] - df['SM3']
     df['Tang_Khong_Dat_BRCD'] = df['Phieu_Khong_Dat_BRCD'] - (df['Y_SM4'].fillna(0) - df['Y_SM3'].fillna(0))
+    df['Tang_Khong_Dat_BRCD_2d'] = df['Phieu_Khong_Dat_BRCD'] - (df['D2_SM4'].fillna(0) - df['D2_SM3'].fillna(0))
     df['Tang_Khong_Dat_BRCD_3d'] = df['Phieu_Khong_Dat_BRCD'] - (df['D3_SM4'].fillna(0) - df['D3_SM3'].fillna(0))
     df['Tang_Khong_Dat_BRCD_7d'] = df['Phieu_Khong_Dat_BRCD'] - (df['D7_SM4'].fillna(0) - df['D7_SM3'].fillna(0))
     
     # Calculate deltas for CLCĐ (SM1/SM2)
     df['Phieu_Khong_Dat_CLCD'] = df['SM2'] - df['SM1']
     df['Tang_Khong_Dat_CLCD'] = df['Phieu_Khong_Dat_CLCD'] - (df['Y_SM2'].fillna(0) - df['Y_SM1'].fillna(0))
+    df['Tang_Khong_Dat_CLCD_2d'] = df['Phieu_Khong_Dat_CLCD'] - (df['D2_SM2'].fillna(0) - df['D2_SM1'].fillna(0))
     df['Tang_Khong_Dat_CLCD_3d'] = df['Phieu_Khong_Dat_CLCD'] - (df['D3_SM2'].fillna(0) - df['D3_SM1'].fillna(0))
     df['Tang_Khong_Dat_CLCD_7d'] = df['Phieu_Khong_Dat_CLCD'] - (df['D7_SM2'].fillna(0) - df['D7_SM1'].fillna(0))
     
     # Calculate deltas for BRCĐ Lặp (SM5/SM6)
     df['Tang_Khong_Dat_BRCD_Lap'] = df['SM5'] - df['Y_SM5'].fillna(0)
+    df['Tang_Khong_Dat_BRCD_Lap_2d'] = df['SM5'] - df['D2_SM5'].fillna(0)
     df['Tang_Khong_Dat_BRCD_Lap_3d'] = df['SM5'] - df['D3_SM5'].fillna(0)
     df['Tang_Khong_Dat_BRCD_Lap_7d'] = df['SM5'] - df['D7_SM5'].fillna(0)
     
