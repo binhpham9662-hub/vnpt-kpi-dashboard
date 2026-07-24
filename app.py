@@ -443,27 +443,27 @@ def render_charts_page():
         ).reset_index()
         tt_daily['Ngay_Bao_Cao'] = pd.to_datetime(tt_daily['Ngay_Bao_Cao'])
         
-        tt_daily['C1.1 BRCĐ không tính hẹn (%)'] = (tt_daily['Tong_SM3'] / tt_daily['Tong_SM4'] * 100).fillna(0)
-        tt_daily['C1.2 BRCĐ lặp lại (%)'] = (tt_daily['Tong_SM5'] / tt_daily['Tong_SM6'] * 100).fillna(0)
-        tt_daily['C1.1 CLCĐ FiberVNN, MyTV (%)'] = (tt_daily['Tong_SM1'] / tt_daily['Tong_SM2'] * 100).fillna(0)
+        tt_daily['brcd'] = (tt_daily['Tong_SM3'] / tt_daily['Tong_SM4'] * 100).fillna(0)
+        tt_daily['brcd_lap'] = (tt_daily['Tong_SM5'] / tt_daily['Tong_SM6'] * 100).fillna(0)
+        tt_daily['clcd'] = (tt_daily['Tong_SM1'] / tt_daily['Tong_SM2'] * 100).fillna(0)
         
-        def render_single_chart(df, y_col, color):
+        def render_single_chart(df, y_col, color, title):
             chart = alt.Chart(df).mark_line(point=True).encode(
                 x=alt.X('Ngay_Bao_Cao:T', title='Ngày', axis=alt.Axis(format='%Y-%m-%d', labelAngle=-45)),
-                y=alt.Y(f'{y_col}:Q', scale=alt.Scale(zero=False), title='Tỷ lệ (%)'),
+                y=alt.Y(f'{y_col}:Q', scale=alt.Scale(zero=False), title=title),
                 color=alt.value(color),
-                tooltip=[alt.Tooltip('Ngay_Bao_Cao:T', format='%Y-%m-%d', title='Ngày'), alt.Tooltip(f'{y_col}:Q', format='.2f', title='Tỷ lệ (%)')]
+                tooltip=[alt.Tooltip('Ngay_Bao_Cao:T', format='%Y-%m-%d', title='Ngày'), alt.Tooltip(f'{y_col}:Q', format='.2f', title=title)]
             ).interactive()
             st.altair_chart(chart, use_container_width=True)
         
         st.markdown("**1. C1.1 BRCĐ không tính hẹn**")
-        render_single_chart(tt_daily, 'C1.1 BRCĐ không tính hẹn (%)', '#1f77b4')
+        render_single_chart(tt_daily, 'brcd', '#1f77b4', 'C1.1 BRCĐ không tính hẹn (%)')
         
         st.markdown("**2. C1.2 BRCĐ lặp lại**")
-        render_single_chart(tt_daily, 'C1.2 BRCĐ lặp lại (%)', '#ff7f0e')
+        render_single_chart(tt_daily, 'brcd_lap', '#ff7f0e', 'C1.2 BRCĐ lặp lại (%)')
         
         st.markdown("**3. C1.1 CLCĐ FiberVNN, MyTV**")
-        render_single_chart(tt_daily, 'C1.1 CLCĐ FiberVNN, MyTV (%)', '#2ca02c')
+        render_single_chart(tt_daily, 'clcd', '#2ca02c', 'C1.1 CLCĐ FiberVNN, MyTV (%)')
     else:
         st.warning("Không có dữ liệu của Trung tâm.")
 
@@ -481,27 +481,27 @@ def render_charts_page():
         ).reset_index()
         to_daily['Ngay_Bao_Cao'] = pd.to_datetime(to_daily['Ngay_Bao_Cao'])
         
-        to_daily['C1.1 BRCĐ không tính hẹn (%)'] = (to_daily['Tong_SM3'] / to_daily['Tong_SM4'] * 100).fillna(0)
-        to_daily['C1.2 BRCĐ lặp lại (%)'] = (to_daily['Tong_SM5'] / to_daily['Tong_SM6'] * 100).fillna(0)
-        to_daily['C1.1 CLCĐ FiberVNN, MyTV (%)'] = (to_daily['Tong_SM1'] / to_daily['Tong_SM2'] * 100).fillna(0)
+        to_daily['brcd'] = (to_daily['Tong_SM3'] / to_daily['Tong_SM4'] * 100).fillna(0)
+        to_daily['brcd_lap'] = (to_daily['Tong_SM5'] / to_daily['Tong_SM6'] * 100).fillna(0)
+        to_daily['clcd'] = (to_daily['Tong_SM1'] / to_daily['Tong_SM2'] * 100).fillna(0)
         
-        def render_multi_chart(df, y_col):
+        def render_multi_chart(df, y_col, title):
             chart = alt.Chart(df).mark_line(point=True).encode(
                 x=alt.X('Ngay_Bao_Cao:T', title='Ngày', axis=alt.Axis(format='%Y-%m-%d', labelAngle=-45)),
-                y=alt.Y(f'{y_col}:Q', scale=alt.Scale(zero=False), title='Tỷ lệ (%)'),
+                y=alt.Y(f'{y_col}:Q', scale=alt.Scale(zero=False), title=title),
                 color=alt.Color('To_KTDB:N', legend=alt.Legend(title="Tổ", orient="bottom")),
-                tooltip=[alt.Tooltip('Ngay_Bao_Cao:T', format='%Y-%m-%d', title='Ngày'), alt.Tooltip('To_KTDB:N', title='Tổ'), alt.Tooltip(f'{y_col}:Q', format='.2f', title='Tỷ lệ (%)')]
+                tooltip=[alt.Tooltip('Ngay_Bao_Cao:T', format='%Y-%m-%d', title='Ngày'), alt.Tooltip('To_KTDB:N', title='Tổ'), alt.Tooltip(f'{y_col}:Q', format='.2f', title=title)]
             ).interactive()
             st.altair_chart(chart, use_container_width=True)
         
         st.markdown("**1. C1.1 BRCĐ không tính hẹn**")
-        render_multi_chart(to_daily, 'C1.1 BRCĐ không tính hẹn (%)')
+        render_multi_chart(to_daily, 'brcd', 'C1.1 BRCĐ không tính hẹn (%)')
         
         st.markdown("**2. C1.2 BRCĐ lặp lại**")
-        render_multi_chart(to_daily, 'C1.2 BRCĐ lặp lại (%)')
+        render_multi_chart(to_daily, 'brcd_lap', 'C1.2 BRCĐ lặp lại (%)')
         
         st.markdown("**3. C1.1 CLCĐ FiberVNN, MyTV**")
-        render_multi_chart(to_daily, 'C1.1 CLCĐ FiberVNN, MyTV (%)')
+        render_multi_chart(to_daily, 'clcd', 'C1.1 CLCĐ FiberVNN, MyTV (%)')
     else:
         st.warning("Không có dữ liệu của các Tổ.")
 
