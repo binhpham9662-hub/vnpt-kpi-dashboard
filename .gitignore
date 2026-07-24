@@ -1,0 +1,7 @@
+__pycache__/
+downloads/
+*.xlsx
+*.html
+*.json
+*.txt
+.env

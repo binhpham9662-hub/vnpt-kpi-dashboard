@@ -1,0 +1,450 @@
+import streamlit as st
+import pandas as pd
+from datetime import datetime
+from database import get_kpi_for_date, init_db
+import os
+
+# Initialize DB on first run if not exists
+if not os.path.exists('kpi_history.db'):
+    init_db()
+
+st.set_page_config(
+    page_title="HR KPI Dashboard",
+    page_icon="📊",
+    layout="wide"
+)
+
+# Custom CSS for modern UI
+st.markdown("""
+<style>
+    .stApp { background-color: #f4f7f6; }
+    div[data-testid="metric-container"] {
+        background-color: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        border: 1px solid #e0e0e0;
+    }
+    .stDataFrame {
+        background-color: white;
+        border-radius: 8px;
+        padding: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    h1, h2, h3 {
+        color: #1a252f;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    /* Make buttons look nicer */
+    .stButton>button {
+        border-radius: 8px;
+        font-weight: bold;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Session State initialization
+if 'page' not in st.session_state:
+    st.session_state.page = 'main'
+if 'selected_team' not in st.session_state:
+    st.session_state.selected_team = None
+if 'selected_metric' not in st.session_state:
+    st.session_state.selected_metric = None
+
+st.title("📊 Bảng Điều Khiển KPI Nhân Sự")
+st.markdown("---")
+
+# --- Cảnh báo trễ dữ liệu TOÀN CỤC ---
+try:
+    from database import get_kpi_for_date
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    today_df = get_kpi_for_date(today_str)
+    if today_df.empty and datetime.now().hour >= 12:
+        st.error(f"⚠️ **CẢNH BÁO:** Đã quá 12h00 trưa nhưng hệ thống chưa lấy được dữ liệu báo cáo của ngày hôm nay ({today_str}). Vui lòng mở Terminal và chạy lệnh `python scraper.py` để cập nhật số liệu mới nhất!")
+except Exception:
+    pass
+
+# Date Selection
+col_date, _ = st.columns([1, 4])
+with col_date:
+    selected_date = st.date_input("Chọn ngày xem báo cáo:", datetime.now())
+
+date_str = selected_date.strftime("%Y-%m-%d")
+
+# Fetch data from SQLite
+try:
+    df = get_kpi_for_date(date_str)
+    # Đổi tên Tổ Không xác định thành Trung tâm Viễn thông Đông Anh
+    if not df.empty:
+        df['To_KTDB'] = df['To_KTDB'].replace('Không xác định', 'Trung tâm Viễn thông Đông Anh')
+except Exception as e:
+    st.error(f"Lỗi truy xuất cơ sở dữ liệu: {e}")
+    st.stop()
+
+if df.empty:
+    st.info(f"Chưa có dữ liệu cho ngày {date_str}. Vui lòng kiểm tra lại quá trình tải dữ liệu hoặc chọn ngày khác.")
+    st.stop()
+
+def render_main_page():
+
+    # --- Calculations ---
+    total_sm1 = df['SM1'].sum()
+    total_sm2 = df['SM2'].sum()
+    total_sm3 = df['SM3'].sum()
+    total_sm4 = df['SM4'].sum()
+    if 'SM5' not in df.columns:
+        df['SM5'] = 0
+        df['SM6'] = 0
+        df['Tang_Khong_Dat_BRCD_Lap'] = 0
+    total_sm5 = df['SM5'].sum()
+    total_sm6 = df['SM6'].sum()
+    
+    ty_le_brcd = (total_sm3 / total_sm4 * 100) if total_sm4 > 0 else 0
+    ty_le_clcd = (total_sm1 / total_sm2 * 100) if total_sm2 > 0 else 0
+    ty_le_brcd_lap = (total_sm5 / total_sm6 * 100) if total_sm6 > 0 else 0
+    
+    # Tính tỷ lệ các ngày trước
+    y_ty_le_brcd = (df['Y_SM3'].sum() / df['Y_SM4'].sum() * 100) if df['Y_SM4'].sum() > 0 else 0
+    d3_ty_le_brcd = (df['D3_SM3'].sum() / df['D3_SM4'].sum() * 100) if df['D3_SM4'].sum() > 0 else 0
+    d7_ty_le_brcd = (df['D7_SM3'].sum() / df['D7_SM4'].sum() * 100) if df['D7_SM4'].sum() > 0 else 0
+
+    y_ty_le_clcd = (df['Y_SM1'].sum() / df['Y_SM2'].sum() * 100) if df['Y_SM2'].sum() > 0 else 0
+    d3_ty_le_clcd = (df['D3_SM1'].sum() / df['D3_SM2'].sum() * 100) if df['D3_SM2'].sum() > 0 else 0
+    d7_ty_le_clcd = (df['D7_SM1'].sum() / df['D7_SM2'].sum() * 100) if df['D7_SM2'].sum() > 0 else 0
+
+    y_ty_le_brcd_lap = (df['Y_SM5'].sum() / df['Y_SM6'].sum() * 100) if df['Y_SM6'].sum() > 0 else 0
+    d3_ty_le_brcd_lap = (df['D3_SM5'].sum() / df['D3_SM6'].sum() * 100) if df['D3_SM6'].sum() > 0 else 0
+    d7_ty_le_brcd_lap = (df['D7_SM5'].sum() / df['D7_SM6'].sum() * 100) if df['D7_SM6'].sum() > 0 else 0
+
+    st.subheader("📌 Tổng Quan KPI")
+    m1, m2, m3 = st.columns(3)
+    
+    with m1:
+        st.metric(
+            label="C1.1 BRCĐ không tính hẹn", 
+            value=f"{ty_le_brcd:.2f}%", 
+            delta="Mục tiêu: ≥ 85%",
+            delta_color="normal" if ty_le_brcd >= 85 else "inverse"
+        )
+        st.caption(f"🕒 1 ngày trước: **{y_ty_le_brcd:.2f}%**<br>🕒 3 ngày trước: **{d3_ty_le_brcd:.2f}%**<br>🕒 7 ngày trước: **{d7_ty_le_brcd:.2f}%**", unsafe_allow_html=True)
+        if st.button("👁 Xem bảng BRCĐ", use_container_width=True):
+            st.session_state.page = 'table_brcd'
+            st.rerun()
+            
+    with m2:
+        st.metric(
+            label="C1.2 BRCĐ lặp lại", 
+            value=f"{ty_le_brcd_lap:.2f}%", 
+            delta="Mục tiêu: ≤ 2.5%",
+            delta_color="inverse" if ty_le_brcd_lap > 2.5 else "normal"
+        )
+        st.caption(f"🕒 1 ngày trước: **{y_ty_le_brcd_lap:.2f}%**<br>🕒 3 ngày trước: **{d3_ty_le_brcd_lap:.2f}%**<br>🕒 7 ngày trước: **{d7_ty_le_brcd_lap:.2f}%**", unsafe_allow_html=True)
+        if st.button("👁 Xem bảng BRCĐ Lặp", use_container_width=True):
+            st.session_state.page = 'table_brcd_lap'
+            st.rerun()
+            
+    with m3:
+        st.metric(
+            label="C1.1 CLCĐ FiberVNN, MyTV", 
+            value=f"{ty_le_clcd:.2f}%", 
+            delta="Mục tiêu: ≥ 99%",
+            delta_color="normal" if ty_le_clcd >= 99 else "inverse"
+        )
+        st.caption(f"🕒 1 ngày trước: **{y_ty_le_clcd:.2f}%**<br>🕒 3 ngày trước: **{d3_ty_le_clcd:.2f}%**<br>🕒 7 ngày trước: **{d7_ty_le_clcd:.2f}%**", unsafe_allow_html=True)
+        if st.button("👁 Xem bảng CLCĐ", use_container_width=True):
+            st.session_state.page = 'table_clcd'
+            st.rerun()
+            
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("📉 Xem Biểu Đồ Phân Tích", use_container_width=True, type="primary"):
+        st.session_state.page = 'charts'
+        st.rerun()
+
+def render_team_table(metric_type):
+    st.button("⬅ Quay lại Tổng quan", on_click=lambda: st.session_state.update(page='main'))
+    
+    st.info("💡 **Mẹo:** Hãy nhấp vào bất kỳ hàng nào trong bảng để xem chi tiết từng nhân sự của Tổ đó.")
+    
+    if metric_type == 'brcd':
+        st.subheader("📊 Bảng Chỉ tiêu C1.1 BRCĐ không tính hẹn")
+        brcd_agg = df.groupby('To_KTDB').agg(
+            Tong_SM3=('SM3', 'sum'), Tong_SM4=('SM4', 'sum'),
+            Tang_Khong_Dat_BRCD=('Tang_Khong_Dat_BRCD', 'sum')
+        ).reset_index()
+        brcd_agg['Ty_Le_Dat'] = (brcd_agg['Tong_SM3'] / brcd_agg['Tong_SM4'] * 100).fillna(0)
+        
+        display_df = pd.DataFrame({
+            'Đơn vị': brcd_agg['To_KTDB'],
+            'Chỉ tiêu': 'Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCĐ đúng quy định không tính hẹn',
+            'SM3': brcd_agg['Tong_SM3'],
+            'SM4': brcd_agg['Tong_SM4'],
+            'Số phiếu không đạt tăng lên so với hôm qua': brcd_agg['Tang_Khong_Dat_BRCD'].apply(lambda x: f"{x:+.0f}"),
+            'Tỷ lệ đạt': brcd_agg['Ty_Le_Dat'].apply(lambda x: f"{x:.2f}%")
+        })
+    elif metric_type == 'brcd_lap':
+        st.subheader("📊 Bảng Chỉ tiêu C1.2 BRCĐ lặp lại")
+        brcd_lap_agg = df.groupby('To_KTDB').agg(
+            Tong_SM5=('SM5', 'sum'), Tong_SM6=('SM6', 'sum'),
+            Tang_Khong_Dat_BRCD_Lap=('Tang_Khong_Dat_BRCD_Lap', 'sum')
+        ).reset_index()
+        brcd_lap_agg['Ty_Le_Dat'] = (brcd_lap_agg['Tong_SM5'] / brcd_lap_agg['Tong_SM6'] * 100).fillna(0)
+        
+        display_df = pd.DataFrame({
+            'Đơn vị': brcd_lap_agg['To_KTDB'],
+            'Chỉ tiêu': 'Tỷ lệ thuê bao báo hỏng dịch vụ BRCĐ lặp lại',
+            'SM1': brcd_lap_agg['Tong_SM5'],
+            'SM2': brcd_lap_agg['Tong_SM6'],
+            'Số phiếu lặp tăng lên so với hôm qua': brcd_lap_agg['Tang_Khong_Dat_BRCD_Lap'].apply(lambda x: f"{x:+.0f}"),
+            'Tỷ lệ lặp': brcd_lap_agg['Ty_Le_Dat'].apply(lambda x: f"{x:.2f}%")
+        })
+    else:
+        st.subheader("📊 Bảng Chỉ tiêu C1.1 CLCĐ FiberVNN, MyTV")
+        clcd_agg = df.groupby('To_KTDB').agg(
+            Tong_SM1=('SM1', 'sum'), Tong_SM2=('SM2', 'sum'),
+            Tang_Khong_Dat_CLCD=('Tang_Khong_Dat_CLCD', 'sum')
+        ).reset_index()
+        clcd_agg['Ty_Le_Dat'] = (clcd_agg['Tong_SM1'] / clcd_agg['Tong_SM2'] * 100).fillna(0)
+        
+        display_df = pd.DataFrame({
+            'Đơn vị': clcd_agg['To_KTDB'],
+            'Chỉ tiêu': 'Tỷ lệ sửa chữa phiếu chất lượng chủ động dịch vụ FiberVNN, MyTV đạt yêu cầu',
+            'SM1': clcd_agg['Tong_SM1'],
+            'SM2': clcd_agg['Tong_SM2'],
+            'Số phiếu không đạt tăng lên so với hôm qua': clcd_agg['Tang_Khong_Dat_CLCD'].apply(lambda x: f"{x:+.0f}"),
+            'Tỷ lệ đạt': clcd_agg['Ty_Le_Dat'].apply(lambda x: f"{x:.2f}%")
+        })
+        
+    display_df.index = range(1, len(display_df) + 1)
+    
+    event = st.dataframe(display_df, use_container_width=True, selection_mode="single-row", on_select="rerun")
+    
+    if event.selection.rows:
+        selected_idx = event.selection.rows[0]
+        st.session_state.selected_team = display_df.iloc[selected_idx]['Đơn vị']
+        st.session_state.selected_metric = metric_type
+        st.session_state.page = 'team_detail'
+        st.rerun()
+        
+    st.markdown("---")
+    st.subheader("⚠️ Cảnh báo cá nhân cần lưu ý (Toàn mạng)")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        valid_individuals = df[(df['Ten_NV'].str.strip() != '') & (~df['Ma_NV'].str.contains('(?i)trung tâm|đông anh', na=False))]
+        
+        if metric_type == 'brcd':
+            st.markdown("**Top 5 cá nhân có Tỷ lệ thấp nhất**")
+            worst_5 = valid_individuals[valid_individuals['SM4'] > 0].sort_values('Ty_Le_BRCD', ascending=True).head(5)
+            worst_df = pd.DataFrame({
+                'Nhân viên': worst_5['Ten_NV'] + ' (' + worst_5['To_KTDB'] + ')',
+                'Tỷ lệ': worst_5['Ty_Le_BRCD'].apply(lambda x: f"{x*100:.2f}%")
+            })
+            st.dataframe(worst_df, use_container_width=True, hide_index=True)
+        elif metric_type == 'clcd':
+            st.markdown("**Top 5 cá nhân có Tỷ lệ thấp nhất**")
+            worst_5 = valid_individuals[valid_individuals['SM2'] > 0].sort_values('Ty_Le_CLCD', ascending=True).head(5)
+            worst_df = pd.DataFrame({
+                'Nhân viên': worst_5['Ten_NV'] + ' (' + worst_5['To_KTDB'] + ')',
+                'Tỷ lệ': worst_5['Ty_Le_CLCD'].apply(lambda x: f"{x*100:.2f}%")
+            })
+            st.dataframe(worst_df, use_container_width=True, hide_index=True)
+        elif metric_type == 'brcd_lap':
+            st.markdown("**Top 5 cá nhân có Tỷ lệ lặp lại cao nhất**")
+            worst_5 = valid_individuals[valid_individuals['SM6'] > 0].sort_values('Ty_Le_BRCD_Lap', ascending=False).head(5)
+            worst_df = pd.DataFrame({
+                'Nhân viên': worst_5['Ten_NV'] + ' (' + worst_5['To_KTDB'] + ')',
+                'Tỷ lệ': worst_5['Ty_Le_BRCD_Lap'].apply(lambda x: f"{x*100:.2f}%")
+            })
+            st.dataframe(worst_df, use_container_width=True, hide_index=True)
+
+    with col2:
+        st.markdown("**Top 3 cá nhân có số phiếu tăng đột biến**")
+        
+        if metric_type == 'brcd':
+            st.markdown("*So với 1 ngày trước*")
+            top_3_inc = valid_individuals.sort_values('Tang_Khong_Dat_BRCD', ascending=False).head(3)
+            inc_df = pd.DataFrame({
+                'Nhân viên': top_3_inc['Ten_NV'] + ' (' + top_3_inc['To_KTDB'] + ')',
+                'Phiếu tăng': top_3_inc['Tang_Khong_Dat_BRCD'].apply(lambda x: f"+{x:.0f}" if pd.notna(x) and x > 0 else f"{x:.0f}")
+            })
+            st.dataframe(inc_df, use_container_width=True, hide_index=True)
+            
+            st.markdown("*So với 3 ngày trước*")
+            top_3_inc_3d = valid_individuals.sort_values('Tang_Khong_Dat_BRCD_3d', ascending=False).head(3)
+            inc_df_3d = pd.DataFrame({
+                'Nhân viên': top_3_inc_3d['Ten_NV'] + ' (' + top_3_inc_3d['To_KTDB'] + ')',
+                'Phiếu tăng': top_3_inc_3d['Tang_Khong_Dat_BRCD_3d'].apply(lambda x: f"+{x:.0f}" if pd.notna(x) and x > 0 else f"{x:.0f}")
+            })
+            st.dataframe(inc_df_3d, use_container_width=True, hide_index=True)
+            
+            st.markdown("*So với 7 ngày trước*")
+            top_3_inc_7d = valid_individuals.sort_values('Tang_Khong_Dat_BRCD_7d', ascending=False).head(3)
+            inc_df_7d = pd.DataFrame({
+                'Nhân viên': top_3_inc_7d['Ten_NV'] + ' (' + top_3_inc_7d['To_KTDB'] + ')',
+                'Phiếu tăng': top_3_inc_7d['Tang_Khong_Dat_BRCD_7d'].apply(lambda x: f"+{x:.0f}" if pd.notna(x) and x > 0 else f"{x:.0f}")
+            })
+            st.dataframe(inc_df_7d, use_container_width=True, hide_index=True)
+
+        elif metric_type == 'clcd':
+            st.markdown("*So với 1 ngày trước*")
+            top_3_inc = valid_individuals.sort_values('Tang_Khong_Dat_CLCD', ascending=False).head(3)
+            inc_df = pd.DataFrame({
+                'Nhân viên': top_3_inc['Ten_NV'] + ' (' + top_3_inc['To_KTDB'] + ')',
+                'Phiếu tăng': top_3_inc['Tang_Khong_Dat_CLCD'].apply(lambda x: f"+{x:.0f}" if pd.notna(x) and x > 0 else f"{x:.0f}")
+            })
+            st.dataframe(inc_df, use_container_width=True, hide_index=True)
+            
+            st.markdown("*So với 3 ngày trước*")
+            top_3_inc_3d = valid_individuals.sort_values('Tang_Khong_Dat_CLCD_3d', ascending=False).head(3)
+            inc_df_3d = pd.DataFrame({
+                'Nhân viên': top_3_inc_3d['Ten_NV'] + ' (' + top_3_inc_3d['To_KTDB'] + ')',
+                'Phiếu tăng': top_3_inc_3d['Tang_Khong_Dat_CLCD_3d'].apply(lambda x: f"+{x:.0f}" if pd.notna(x) and x > 0 else f"{x:.0f}")
+            })
+            st.dataframe(inc_df_3d, use_container_width=True, hide_index=True)
+            
+            st.markdown("*So với 7 ngày trước*")
+            top_3_inc_7d = valid_individuals.sort_values('Tang_Khong_Dat_CLCD_7d', ascending=False).head(3)
+            inc_df_7d = pd.DataFrame({
+                'Nhân viên': top_3_inc_7d['Ten_NV'] + ' (' + top_3_inc_7d['To_KTDB'] + ')',
+                'Phiếu tăng': top_3_inc_7d['Tang_Khong_Dat_CLCD_7d'].apply(lambda x: f"+{x:.0f}" if pd.notna(x) and x > 0 else f"{x:.0f}")
+            })
+            st.dataframe(inc_df_7d, use_container_width=True, hide_index=True)
+
+        elif metric_type == 'brcd_lap':
+            st.markdown("*So với 1 ngày trước*")
+            top_3_inc = valid_individuals.sort_values('Tang_Khong_Dat_BRCD_Lap', ascending=False).head(3)
+            inc_df = pd.DataFrame({
+                'Nhân viên': top_3_inc['Ten_NV'] + ' (' + top_3_inc['To_KTDB'] + ')',
+                'Phiếu lặp tăng': top_3_inc['Tang_Khong_Dat_BRCD_Lap'].apply(lambda x: f"+{x:.0f}" if pd.notna(x) and x > 0 else f"{x:.0f}")
+            })
+            st.dataframe(inc_df, use_container_width=True, hide_index=True)
+            
+            st.markdown("*So với 3 ngày trước*")
+            top_3_inc_3d = valid_individuals.sort_values('Tang_Khong_Dat_BRCD_Lap_3d', ascending=False).head(3)
+            inc_df_3d = pd.DataFrame({
+                'Nhân viên': top_3_inc_3d['Ten_NV'] + ' (' + top_3_inc_3d['To_KTDB'] + ')',
+                'Phiếu lặp tăng': top_3_inc_3d['Tang_Khong_Dat_BRCD_Lap_3d'].apply(lambda x: f"+{x:.0f}" if pd.notna(x) and x > 0 else f"{x:.0f}")
+            })
+            st.dataframe(inc_df_3d, use_container_width=True, hide_index=True)
+            
+            st.markdown("*So với 7 ngày trước*")
+            top_3_inc_7d = valid_individuals.sort_values('Tang_Khong_Dat_BRCD_Lap_7d', ascending=False).head(3)
+            inc_df_7d = pd.DataFrame({
+                'Nhân viên': top_3_inc_7d['Ten_NV'] + ' (' + top_3_inc_7d['To_KTDB'] + ')',
+                'Phiếu lặp tăng': top_3_inc_7d['Tang_Khong_Dat_BRCD_Lap_7d'].apply(lambda x: f"+{x:.0f}" if pd.notna(x) and x > 0 else f"{x:.0f}")
+            })
+            st.dataframe(inc_df_7d, use_container_width=True, hide_index=True)
+
+def render_team_detail():
+    st.button("⬅ Quay lại Bảng Tổ", on_click=lambda: st.session_state.update(page=f"table_{st.session_state.selected_metric}"))
+    team_name = st.session_state.selected_team
+    st.subheader(f"🏢 Chi tiết nhân sự: {team_name}")
+    
+    team_df = df[df['To_KTDB'] == team_name].copy()
+    
+    # Format Đơn vị column combining Ma_NV and Ten_NV
+    team_df['Đơn vị'] = team_df['Ma_NV'] + " - " + team_df['Ten_NV']
+    
+    if st.session_state.selected_metric == 'brcd':
+        display_df = pd.DataFrame({
+            'Đơn vị': team_df['Đơn vị'],
+            'SM3': team_df['SM3'],
+            'SM4': team_df['SM4'],
+            'Số phiếu không đạt tăng lên so với hôm qua': team_df['Tang_Khong_Dat_BRCD'].apply(lambda x: f"=(SM4-SM3)hôm nay - (SM4-SM3)hôm qua" if pd.isna(x) else f"{x:+.0f}"),
+            'Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCĐ đúng quy định không tính hẹn': team_df['Ty_Le_BRCD'].apply(lambda x: f"{x*100:.2f}%")
+        })
+    elif st.session_state.selected_metric == 'brcd_lap':
+        display_df = pd.DataFrame({
+            'Đơn vị': team_df['Đơn vị'],
+            'SM1': team_df['SM5'],
+            'SM2': team_df['SM6'],
+            'Số phiếu lặp tăng lên so với hôm qua': team_df['Tang_Khong_Dat_BRCD_Lap'].apply(lambda x: f"=(SM1)hôm nay - (SM1)hôm qua" if pd.isna(x) else f"{x:+.0f}"),
+            'Tỷ lệ thuê bao báo hỏng dịch vụ BRCĐ lặp lại': team_df['Ty_Le_BRCD_Lap'].apply(lambda x: f"{x*100:.2f}%")
+        })
+    else:
+        display_df = pd.DataFrame({
+            'Đơn vị': team_df['Đơn vị'],
+            'SM1': team_df['SM1'],
+            'SM2': team_df['SM2'],
+            'Số phiếu không đạt tăng lên so với hôm qua': team_df['Tang_Khong_Dat_CLCD'].apply(lambda x: f"=(SM2-SM1)hôm nay - (SM2-SM1)hôm qua" if pd.isna(x) else f"{x:+.0f}"),
+            'Tỷ lệ sửa chữa phiếu chất lượng chủ động dịch vụ FiberVNN, MyTV đạt yêu cầu': team_df['Ty_Le_CLCD'].apply(lambda x: f"{x*100:.2f}%")
+        })
+
+    display_df.index = range(1, len(display_df) + 1)
+    st.dataframe(display_df, use_container_width=True)
+
+def render_charts_page():
+    st.button("⬅ Quay lại Tổng quan", on_click=lambda: st.session_state.update(page='main'))
+    st.subheader("📉 Biểu Đồ Phân Tích Xu Hướng")
+    
+    from database import get_historical_kpi
+    import altair as alt
+    from datetime import timedelta
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        start_date = st.date_input("Từ ngày:", datetime.now() - timedelta(days=7))
+    with col2:
+        end_date = st.date_input("Đến ngày:", datetime.now())
+        
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+    
+    hist_df = get_historical_kpi(start_str, end_str)
+    if hist_df.empty:
+        st.warning("Không có dữ liệu trong khoảng thời gian này.")
+        return
+        
+    hist_df['To_KTDB'] = hist_df['To_KTDB'].replace('Không xác định', 'Trung tâm Viễn thông Đông Anh')
+    
+    # Aggregate daily for overall trend
+    daily_agg = hist_df.groupby('Ngay_Bao_Cao').agg(
+        Tong_SM1=('SM1', 'sum'), Tong_SM2=('SM2', 'sum'),
+        Tong_SM3=('SM3', 'sum'), Tong_SM4=('SM4', 'sum'),
+        Tong_SM5=('SM5', 'sum'), Tong_SM6=('SM6', 'sum')
+    ).reset_index()
+    
+    daily_agg['BRCĐ không tính hẹn (%)'] = (daily_agg['Tong_SM3'] / daily_agg['Tong_SM4'] * 100).fillna(0)
+    daily_agg['CLCĐ FiberVNN, MyTV (%)'] = (daily_agg['Tong_SM1'] / daily_agg['Tong_SM2'] * 100).fillna(0)
+    daily_agg['C1.2 BRCĐ Lặp lại (%)'] = (daily_agg['Tong_SM5'] / daily_agg['Tong_SM6'] * 100).fillna(0)
+    
+    st.markdown("### Xu hướng Tỷ lệ Đạt theo Ngày")
+    
+    # Prepare data for st.line_chart
+    line_df = daily_agg.set_index('Ngay_Bao_Cao')[['BRCĐ không tính hẹn (%)', 'CLCĐ FiberVNN, MyTV (%)', 'C1.2 BRCĐ Lặp lại (%)']]
+    st.line_chart(line_df, use_container_width=True)
+    
+    # Aggregate by team for the period
+    st.markdown("### So sánh các Tổ trong khoảng thời gian")
+    team_agg = hist_df.groupby('To_KTDB').agg(
+        Tong_SM1=('SM1', 'sum'), Tong_SM2=('SM2', 'sum'),
+        Tong_SM3=('SM3', 'sum'), Tong_SM4=('SM4', 'sum'),
+        Tong_SM5=('SM5', 'sum'), Tong_SM6=('SM6', 'sum')
+    ).reset_index()
+    
+    team_agg['BRCĐ không tính hẹn (%)'] = (team_agg['Tong_SM3'] / team_agg['Tong_SM4'] * 100).fillna(0)
+    team_agg['CLCĐ FiberVNN, MyTV (%)'] = (team_agg['Tong_SM1'] / team_agg['Tong_SM2'] * 100).fillna(0)
+    team_agg['C1.2 BRCĐ Lặp lại (%)'] = (team_agg['Tong_SM5'] / team_agg['Tong_SM6'] * 100).fillna(0)
+    
+    # Prepare data for st.bar_chart
+    bar_df = team_agg.set_index('To_KTDB')[['BRCĐ không tính hẹn (%)', 'CLCĐ FiberVNN, MyTV (%)', 'C1.2 BRCĐ Lặp lại (%)']]
+    st.bar_chart(bar_df, use_container_width=True)
+
+
+# Main Routing
+if st.session_state.page == 'main':
+    render_main_page()
+elif st.session_state.page == 'table_brcd':
+    render_team_table('brcd')
+elif st.session_state.page == 'table_brcd_lap':
+    render_team_table('brcd_lap')
+elif st.session_state.page == 'table_clcd':
+    render_team_table('clcd')
+elif st.session_state.page == 'team_detail':
+    render_team_detail()
+elif st.session_state.page == 'charts':
+    render_charts_page()
+
+st.markdown("---")
+st.caption("Thiết kế và phát triển dựa trên Streamlit & Pandas. Tự động lấy dữ liệu bằng Playwright.")
