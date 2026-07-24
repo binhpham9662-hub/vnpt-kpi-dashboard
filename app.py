@@ -129,7 +129,7 @@ def render_main_page():
             delta="Mục tiêu: ≥ 85%",
             delta_color="normal" if ty_le_brcd >= 85 else "inverse"
         )
-        st.caption(f"🕒 1 ngày trước: **{y_ty_le_brcd:.2f}%**<br>🕒 2 ngày trước: **{d2_ty_le_brcd:.2f}%**<br>🕒 2 ngày trước: **{d2_ty_le_brcd_lap:.2f}%**<br>🕒 2 ngày trước: **{d2_ty_le_clcd:.2f}%**<br>🕒 3 ngày trước: **{d3_ty_le_brcd:.2f}%**<br>🕒 7 ngày trước: **{d7_ty_le_brcd:.2f}%**", unsafe_allow_html=True)
+        st.caption(f"🕒 1 ngày trước: **{y_ty_le_brcd:.2f}%**<br>🕒 2 ngày trước: **{d2_ty_le_brcd:.2f}%**<br>🕒 3 ngày trước: **{d3_ty_le_brcd:.2f}%**<br>🕒 7 ngày trước: **{d7_ty_le_brcd:.2f}%**", unsafe_allow_html=True)
         if st.button("👁 Xem bảng BRCĐ", use_container_width=True):
             st.session_state.page = 'table_brcd'
             st.rerun()
@@ -141,7 +141,7 @@ def render_main_page():
             delta="Mục tiêu: ≤ 2.5%",
             delta_color="inverse" if ty_le_brcd_lap > 2.5 else "normal"
         )
-        st.caption(f"🕒 1 ngày trước: **{y_ty_le_brcd_lap:.2f}%**<br>🕒 3 ngày trước: **{d3_ty_le_brcd_lap:.2f}%**<br>🕒 7 ngày trước: **{d7_ty_le_brcd_lap:.2f}%**", unsafe_allow_html=True)
+        st.caption(f"🕒 1 ngày trước: **{y_ty_le_brcd_lap:.2f}%**<br>🕒 2 ngày trước: **{d2_ty_le_brcd_lap:.2f}%**<br>🕒 3 ngày trước: **{d3_ty_le_brcd_lap:.2f}%**<br>🕒 7 ngày trước: **{d7_ty_le_brcd_lap:.2f}%**", unsafe_allow_html=True)
         if st.button("👁 Xem bảng BRCĐ Lặp", use_container_width=True):
             st.session_state.page = 'table_brcd_lap'
             st.rerun()
@@ -153,7 +153,7 @@ def render_main_page():
             delta="Mục tiêu: ≥ 99%",
             delta_color="normal" if ty_le_clcd >= 99 else "inverse"
         )
-        st.caption(f"🕒 1 ngày trước: **{y_ty_le_clcd:.2f}%**<br>🕒 3 ngày trước: **{d3_ty_le_clcd:.2f}%**<br>🕒 7 ngày trước: **{d7_ty_le_clcd:.2f}%**", unsafe_allow_html=True)
+        st.caption(f"🕒 1 ngày trước: **{y_ty_le_clcd:.2f}%**<br>🕒 2 ngày trước: **{d2_ty_le_clcd:.2f}%**<br>🕒 3 ngày trước: **{d3_ty_le_clcd:.2f}%**<br>🕒 7 ngày trước: **{d7_ty_le_clcd:.2f}%**", unsafe_allow_html=True)
         if st.button("👁 Xem bảng CLCĐ", use_container_width=True):
             st.session_state.page = 'table_clcd'
             st.rerun()
