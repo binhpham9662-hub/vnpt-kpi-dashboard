@@ -253,11 +253,11 @@ def render_team_table(metric_type):
             })
             st.dataframe(worst_df, use_container_width=True, hide_index=True)
         elif metric_type == 'brcd_lap':
-            st.markdown("**Top 5 cá nhân có Tỷ lệ lặp lại cao nhất**")
-            worst_5 = valid_individuals[valid_individuals['SM6'] > 0].sort_values('Ty_Le_BRCD_Lap', ascending=False).head(5)
+            st.markdown("**Top 5 cá nhân có số lượng hỏng lặp nhiều nhất**")
+            worst_5 = valid_individuals[valid_individuals['SM5'] > 0].sort_values('SM5', ascending=False).head(5)
             worst_df = pd.DataFrame({
                 'Nhân viên': worst_5['Ten_NV'] + ' (' + worst_5['To_KTDB'] + ')',
-                'Tỷ lệ': worst_5['Ty_Le_BRCD_Lap'].apply(lambda x: f"{x*100:.2f}%")
+                'Số lượng': worst_5['SM5'].astype(int)
             })
             st.dataframe(worst_df, use_container_width=True, hide_index=True)
 
