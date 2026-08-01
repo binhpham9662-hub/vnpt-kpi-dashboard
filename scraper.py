@@ -297,7 +297,7 @@ if __name__ == "__main__":
     from database import init_db
     init_db()
     
-    schedule.every().day.at("11:00").do(job)
+    schedule.every().day.at("10:00").do(job)
     
     logging.info("Hệ thống đã khởi động. Đang chạy thử nghiệm ngay bây giờ...")
     job()
