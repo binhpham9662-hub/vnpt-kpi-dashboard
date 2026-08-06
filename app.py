@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from database import get_kpi_for_date, init_db
+from database import get_kpi_for_date, init_db, get_pending_summary, get_pending_details
 import os
 
 # Initialize DB on first run if not exists
@@ -56,7 +56,7 @@ st.markdown("---")
 
 # --- Cảnh báo trễ dữ liệu TOÀN CỤC ---
 try:
-    from database import get_kpi_for_date, get_pending_summary, get_pending_details
+    from database import get_kpi_for_date
     today_str = datetime.now().strftime('%Y-%m-%d')
     today_df = get_kpi_for_date(today_str)
     if today_df.empty and datetime.now().hour >= 12:
