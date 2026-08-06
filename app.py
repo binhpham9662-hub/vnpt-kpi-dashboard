@@ -117,7 +117,7 @@ def render_pending_tickets_page(loai_phieu):
     summary_df = summary_df.rename(columns={"To_KTDB": "Tổ KTĐB", "NVKT": "Nhân Viên KT", "Total_Tickets": "Số Lượng Tồn"})
     
     st.markdown("### 👥 Tổng hợp theo cá nhân")
-    st.info("💡 **Mẹo:** Hãy nhấp vào bất kỳ hàng nào trong bảng để xem chi tiết các phiếu tồn của nhân viên đó.")
+    st.info("💡 **Mẹo:** Hãy tích vào ô vuông (checkbox) ở cột ngoài cùng bên trái của bảng để xem chi tiết phiếu tồn của nhân viên đó.")
     
     event = st.dataframe(summary_df, use_container_width=True, selection_mode="single-row", on_select="rerun")
     
