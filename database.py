@@ -43,6 +43,18 @@ def init_db():
             PRIMARY KEY (Ngay_Bao_Cao, Ma_NV)
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS pending_tickets (
+            Ngay_Bao_Cao TEXT,
+            Loai_Phieu TEXT,
+            Ma_TB TEXT,
+            NVKT TEXT,
+            To_KTDB TEXT,
+            Gio_Ton TEXT,
+            Ly_Do_Ton TEXT,
+            PRIMARY KEY (Ngay_Bao_Cao, Loai_Phieu, Ma_TB)
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -290,6 +302,50 @@ def get_historical_kpi(start_date_str, end_date_str):
     ORDER BY Ngay_Bao_Cao ASC
     """
     df = pd.read_sql_query(query, conn, params=(start_date_str, end_date_str))
+    conn.close()
+    return df
+
+def save_pending_tickets(date_str, loai_phieu, tickets_dict):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    # Xóa dữ liệu cũ của ngày và loại phiếu này (để ghi đè)
+    cursor.execute("DELETE FROM pending_tickets WHERE Ngay_Bao_Cao = ? AND Loai_Phieu = ?", (date_str, loai_phieu))
+    
+    for ma_tb, info in tickets_dict.items():
+        nvkt = info.get("NVKT", "")
+        to_ktdb = info.get("Tổ", "")
+        gio_ton = info.get("GIO_TON", "")
+        ly_do = info.get("LY_DO_TON", "")
+        cursor.execute('''
+            INSERT INTO pending_tickets (Ngay_Bao_Cao, Loai_Phieu, Ma_TB, NVKT, To_KTDB, Gio_Ton, Ly_Do_Ton)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (date_str, loai_phieu, str(ma_tb), str(nvkt), str(to_ktdb), str(gio_ton), str(ly_do)))
+    
+    conn.commit()
+    conn.close()
+
+def get_pending_summary(date_str, loai_phieu):
+    conn = sqlite3.connect(DB_PATH)
+    query = """
+    SELECT To_KTDB, NVKT, COUNT(Ma_TB) as Total_Tickets
+    FROM pending_tickets
+    WHERE Ngay_Bao_Cao = ? AND Loai_Phieu = ?
+    GROUP BY To_KTDB, NVKT
+    ORDER BY To_KTDB ASC, Total_Tickets DESC
+    """
+    df = pd.read_sql_query(query, conn, params=(date_str, loai_phieu))
+    conn.close()
+    return df
+
+def get_pending_details(date_str, loai_phieu, nvkt):
+    conn = sqlite3.connect(DB_PATH)
+    query = """
+    SELECT Ma_TB as 'Mã Thuê Bao', Gio_Ton as 'Giờ/Ngày Tồn', Ly_Do_Ton as 'Lý Do Tồn'
+    FROM pending_tickets
+    WHERE Ngay_Bao_Cao = ? AND Loai_Phieu = ? AND NVKT = ?
+    ORDER BY Gio_Ton DESC
+    """
+    df = pd.read_sql_query(query, conn, params=(date_str, loai_phieu, nvkt))
     conn.close()
     return df
 

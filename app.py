@@ -56,13 +56,28 @@ st.markdown("---")
 
 # --- Cảnh báo trễ dữ liệu TOÀN CỤC ---
 try:
-    from database import get_kpi_for_date
+    from database import get_kpi_for_date, get_pending_summary, get_pending_details
     today_str = datetime.now().strftime('%Y-%m-%d')
     today_df = get_kpi_for_date(today_str)
     if today_df.empty and datetime.now().hour >= 12:
         st.error(f"⚠️ **CẢNH BÁO:** Đã quá 12h00 trưa nhưng hệ thống chưa lấy được dữ liệu báo cáo của ngày hôm nay ({today_str}). Vui lòng mở Terminal và chạy lệnh `python scraper.py` để cập nhật số liệu mới nhất!")
 except Exception:
     pass
+
+with st.sidebar:
+    st.header("📑 Điều hướng")
+    is_main = st.session_state.page not in ['pending_bhsc', 'pending_pttb']
+    if st.button("Trang chủ KPI", use_container_width=True, type="primary" if is_main else "secondary"):
+        st.session_state.page = 'main'
+        st.rerun()
+    st.markdown("---")
+    st.subheader("Báo Cáo Tồn")
+    if st.button("Tồn Phiếu BHSC", use_container_width=True, type="primary" if st.session_state.page == 'pending_bhsc' else "secondary"):
+        st.session_state.page = 'pending_bhsc'
+        st.rerun()
+    if st.button("Tồn Phiếu PTTB", use_container_width=True, type="primary" if st.session_state.page == 'pending_pttb' else "secondary"):
+        st.session_state.page = 'pending_pttb'
+        st.rerun()
 
 # Date Selection
 col_date, _ = st.columns([1, 4])
@@ -81,9 +96,42 @@ except Exception as e:
     st.error(f"Lỗi truy xuất cơ sở dữ liệu: {e}")
     st.stop()
 
-if df.empty:
-    st.info(f"Chưa có dữ liệu cho ngày {date_str}. Vui lòng kiểm tra lại quá trình tải dữ liệu hoặc chọn ngày khác.")
+if df.empty and st.session_state.page not in ['pending_bhsc', 'pending_pttb']:
+    st.info(f"Chưa có dữ liệu KPI cho ngày {date_str}. Vui lòng kiểm tra lại quá trình tải dữ liệu hoặc chọn ngày khác.")
     st.stop()
+
+def render_pending_tickets_page(loai_phieu):
+    st.subheader(f"Bảng Tổng Hợp Phiếu Tồn {loai_phieu}")
+    try:
+        summary_df = get_pending_summary(date_str, loai_phieu)
+    except Exception as e:
+        st.error(f"Lỗi truy xuất dữ liệu phiếu tồn: {e}")
+        return
+        
+    if summary_df.empty:
+        st.info(f"Chưa có dữ liệu phiếu tồn {loai_phieu} cho ngày {date_str}.")
+        return
+        
+    # Tạo bảng có index bắt đầu từ 1
+    summary_df.index = range(1, len(summary_df) + 1)
+    summary_df = summary_df.rename(columns={"To_KTDB": "Tổ KTĐB", "NVKT": "Nhân Viên KT", "Total_Tickets": "Số Lượng Tồn"})
+    
+    st.markdown("### 👥 Tổng hợp theo cá nhân")
+    st.info("💡 **Mẹo:** Hãy nhấp vào bất kỳ hàng nào trong bảng để xem chi tiết các phiếu tồn của nhân viên đó.")
+    
+    event = st.dataframe(summary_df, use_container_width=True, selection_mode="single-row", on_select="rerun")
+    
+    if event.selection.rows:
+        selected_idx = event.selection.rows[0]
+        selected_nv = summary_df.iloc[selected_idx]['Nhân Viên KT']
+        st.markdown("---")
+        st.markdown(f"### 📋 Chi tiết phiếu tồn của: **{selected_nv}**")
+        details_df = get_pending_details(date_str, loai_phieu, selected_nv)
+        if details_df.empty:
+            st.warning("Không có chi tiết.")
+        else:
+            details_df.index = range(1, len(details_df) + 1)
+            st.dataframe(details_df, use_container_width=True)
 
 def render_main_page():
 
@@ -519,6 +567,10 @@ elif st.session_state.page == 'team_detail':
     render_team_detail()
 elif st.session_state.page == 'charts':
     render_charts_page()
+elif st.session_state.page == 'pending_bhsc':
+    render_pending_tickets_page('BHSC')
+elif st.session_state.page == 'pending_pttb':
+    render_pending_tickets_page('PTTB')
 
 st.markdown("---")
 st.caption("Thiết kế và phát triển dựa trên Streamlit & Pandas. Tự động lấy dữ liệu bằng Playwright.")

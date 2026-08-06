@@ -7,7 +7,7 @@ import telebot
 import requests
 import json
 import logging
-from database import process_and_insert_excel
+from database import process_and_insert_excel, save_pending_tickets
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -293,14 +293,60 @@ def job():
     except Exception as e:
         logging.error(f"Lỗi hệ thống: {e}")
 
+def sync_overdue_bhsc():
+    logging.info("Bắt đầu đồng bộ phiếu tồn BHSC...")
+    file_path = r"H:\vnpt_report\daily_overdue.json"
+    if not os.path.exists(file_path):
+        logging.error(f"Không tìm thấy file {file_path}")
+        return
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not data: return
+        today_str = datetime.now().strftime('%Y-%m-%d')
+        if today_str in data:
+            target_date = today_str
+        else:
+            target_date = list(data.keys())[-1]
+            
+        save_pending_tickets(target_date, "BHSC", data[target_date])
+        logging.info(f"Đã đồng bộ phiếu tồn BHSC cho ngày {target_date}")
+    except Exception as e:
+        logging.error(f"Lỗi khi đồng bộ BHSC: {e}")
+
+def sync_overdue_pttb():
+    logging.info("Bắt đầu đồng bộ phiếu tồn PTTB...")
+    file_path = r"H:\vnpt_report\daily_overdue_pttb.json"
+    if not os.path.exists(file_path):
+        logging.error(f"Không tìm thấy file {file_path}")
+        return
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not data: return
+        today_str = datetime.now().strftime('%Y-%m-%d')
+        if today_str in data:
+            target_date = today_str
+        else:
+            target_date = list(data.keys())[-1]
+            
+        save_pending_tickets(target_date, "PTTB", data[target_date])
+        logging.info(f"Đã đồng bộ phiếu tồn PTTB cho ngày {target_date}")
+    except Exception as e:
+        logging.error(f"Lỗi khi đồng bộ PTTB: {e}")
+
 if __name__ == "__main__":
     from database import init_db
     init_db()
     
     schedule.every().day.at("10:00").do(job)
+    schedule.every().day.at("23:00").do(sync_overdue_bhsc)
+    schedule.every().day.at("23:05").do(sync_overdue_pttb)
     
     logging.info("Hệ thống đã khởi động. Đang chạy thử nghiệm ngay bây giờ...")
     job()
+    sync_overdue_bhsc()
+    sync_overdue_pttb()
     
     while True:
         schedule.run_pending()
