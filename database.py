@@ -324,28 +324,50 @@ def save_pending_tickets(date_str, loai_phieu, tickets_dict):
     conn.commit()
     conn.close()
 
-def get_pending_summary(date_str, loai_phieu):
+def get_pending_summary(start_date, end_date, loai_phieu):
     conn = sqlite3.connect(DB_PATH)
     query = """
-    SELECT To_KTDB, NVKT, COUNT(Ma_TB) as Total_Tickets
+    SELECT To_KTDB, NVKT, COUNT(DISTINCT Ma_TB) as Total_Tickets
     FROM pending_tickets
-    WHERE Ngay_Bao_Cao = ? AND Loai_Phieu = ?
+    WHERE Ngay_Bao_Cao >= ? AND Ngay_Bao_Cao <= ? AND Loai_Phieu = ?
     GROUP BY To_KTDB, NVKT
     ORDER BY To_KTDB ASC, Total_Tickets DESC
     """
-    df = pd.read_sql_query(query, conn, params=(date_str, loai_phieu))
+    df = pd.read_sql_query(query, conn, params=(start_date, end_date, loai_phieu))
     conn.close()
     return df
 
-def get_pending_details(date_str, loai_phieu, nvkt):
+def get_pending_details(start_date, end_date, loai_phieu, level="NVKT", filter_value=""):
     conn = sqlite3.connect(DB_PATH)
-    query = """
-    SELECT Ma_TB as 'Mã Thuê Bao', Gio_Ton as 'Giờ/Ngày Tồn', Ly_Do_Ton as 'Lý Do Tồn'
-    FROM pending_tickets
-    WHERE Ngay_Bao_Cao = ? AND Loai_Phieu = ? AND NVKT = ?
-    ORDER BY Gio_Ton DESC
-    """
-    df = pd.read_sql_query(query, conn, params=(date_str, loai_phieu, nvkt))
+    if level == "CENTER":
+        query = """
+        SELECT Ma_TB as 'Mã Thuê Bao', To_KTDB as 'Tổ KTĐB', NVKT as 'Nhân Viên KT', MAX(Gio_Ton) as 'Giờ/Ngày Tồn', MAX(Ly_Do_Ton) as 'Lý Do Tồn'
+        FROM pending_tickets
+        WHERE Ngay_Bao_Cao >= ? AND Ngay_Bao_Cao <= ? AND Loai_Phieu = ?
+        GROUP BY Ma_TB, To_KTDB, NVKT
+        ORDER BY MAX(Gio_Ton) DESC
+        """
+        params = (start_date, end_date, loai_phieu)
+    elif level == "TEAM":
+        query = """
+        SELECT Ma_TB as 'Mã Thuê Bao', NVKT as 'Nhân Viên KT', MAX(Gio_Ton) as 'Giờ/Ngày Tồn', MAX(Ly_Do_Ton) as 'Lý Do Tồn'
+        FROM pending_tickets
+        WHERE Ngay_Bao_Cao >= ? AND Ngay_Bao_Cao <= ? AND Loai_Phieu = ? AND To_KTDB = ?
+        GROUP BY Ma_TB, NVKT
+        ORDER BY MAX(Gio_Ton) DESC
+        """
+        params = (start_date, end_date, loai_phieu, filter_value)
+    else: # NVKT
+        query = """
+        SELECT Ma_TB as 'Mã Thuê Bao', MAX(Gio_Ton) as 'Giờ/Ngày Tồn', MAX(Ly_Do_Ton) as 'Lý Do Tồn'
+        FROM pending_tickets
+        WHERE Ngay_Bao_Cao >= ? AND Ngay_Bao_Cao <= ? AND Loai_Phieu = ? AND NVKT = ?
+        GROUP BY Ma_TB
+        ORDER BY MAX(Gio_Ton) DESC
+        """
+        params = (start_date, end_date, loai_phieu, filter_value)
+        
+    df = pd.read_sql_query(query, conn, params=params)
     conn.close()
     return df
 

@@ -80,11 +80,46 @@ with st.sidebar:
         st.rerun()
 
 # Date Selection
-col_date, _ = st.columns([1, 4])
-with col_date:
-    selected_date = st.date_input("Chọn ngày xem báo cáo:", datetime.now())
+st.markdown("### 📅 Bộ Lọc Thời Gian")
 
-date_str = selected_date.strftime("%Y-%m-%d")
+if st.session_state.page in ['pending_bhsc', 'pending_pttb']:
+    import calendar
+    col_filter_type, col_date = st.columns([1, 3])
+    with col_filter_type:
+        date_filter_type = st.radio("Chế độ xem:", ["Theo Ngày", "Theo Tháng", "Tùy chọn"])
+    
+    with col_date:
+        if date_filter_type == "Theo Ngày":
+            selected_date = st.date_input("Chọn ngày:", datetime.now())
+            start_date = selected_date.strftime("%Y-%m-%d")
+            end_date = start_date
+        elif date_filter_type == "Theo Tháng":
+            today = datetime.now()
+            col_m, col_y = st.columns(2)
+            with col_m:
+                selected_month = st.selectbox("Tháng:", range(1, 13), index=today.month - 1)
+            with col_y:
+                selected_year = st.selectbox("Năm:", range(2023, today.year + 2), index=today.year - 2023)
+            
+            last_day = calendar.monthrange(selected_year, selected_month)[1]
+            start_date = f"{selected_year}-{selected_month:02d}-01"
+            end_date = f"{selected_year}-{selected_month:02d}-{last_day:02d}"
+        else:
+            selected_range = st.date_input("Chọn khoảng thời gian:", [datetime.now(), datetime.now()])
+            if isinstance(selected_range, tuple) or isinstance(selected_range, list):
+                start_date = selected_range[0].strftime("%Y-%m-%d") if len(selected_range) > 0 else datetime.now().strftime("%Y-%m-%d")
+                end_date = selected_range[1].strftime("%Y-%m-%d") if len(selected_range) > 1 else start_date
+            else:
+                start_date = selected_range.strftime("%Y-%m-%d")
+                end_date = start_date
+    date_str = start_date # Fallback cho những hàm cũ
+else:
+    col_date, _ = st.columns([1, 4])
+    with col_date:
+        selected_date = st.date_input("Chọn ngày xem báo cáo:", datetime.now())
+    date_str = selected_date.strftime("%Y-%m-%d")
+    start_date = date_str
+    end_date = date_str
 
 # Fetch data from SQLite
 try:
@@ -103,30 +138,66 @@ if df.empty and st.session_state.page not in ['pending_bhsc', 'pending_pttb']:
 def render_pending_tickets_page(loai_phieu):
     st.subheader(f"Bảng Tổng Hợp Phiếu Tồn {loai_phieu}")
     try:
-        summary_df = get_pending_summary(date_str, loai_phieu)
+        summary_df = get_pending_summary(start_date, end_date, loai_phieu)
     except Exception as e:
         st.error(f"Lỗi truy xuất dữ liệu phiếu tồn: {e}")
         return
         
     if summary_df.empty:
-        st.info(f"Chưa có dữ liệu phiếu tồn {loai_phieu} cho ngày {date_str}.")
+        st.info(f"Chưa có dữ liệu phiếu tồn {loai_phieu} trong khoảng thời gian này.")
         return
         
-    # Tạo bảng có index bắt đầu từ 1
-    summary_df.index = range(1, len(summary_df) + 1)
-    summary_df = summary_df.rename(columns={"To_KTDB": "Tổ KTĐB", "NVKT": "Nhân Viên KT", "Total_Tickets": "Số Lượng Tồn"})
+    # Xây dựng bảng phân cấp (Hierarchy)
+    rows = []
     
-    st.markdown("### 👥 Tổng hợp theo cá nhân")
-    st.info("💡 **Mẹo:** Hãy tích vào ô vuông (checkbox) ở cột ngoài cùng bên trái của bảng để xem chi tiết phiếu tồn của nhân viên đó.")
+    # Tính tổng Trung tâm
+    total_center = summary_df['Total_Tickets'].sum()
+    rows.append({
+        "Hiển Thị": "🏢 Trung tâm Viễn thông Đông Anh",
+        "Số Lượng Tồn": total_center,
+        "_Level": "CENTER",
+        "_Value": ""
+    })
     
-    event = st.dataframe(summary_df, use_container_width=True, selection_mode="single-row", on_select="rerun")
+    # Nhóm theo Tổ
+    for to_name, to_group in summary_df.groupby("To_KTDB"):
+        total_to = to_group['Total_Tickets'].sum()
+        rows.append({
+            "Hiển Thị": f"   ├── 👥 {to_name}",
+            "Số Lượng Tồn": total_to,
+            "_Level": "TEAM",
+            "_Value": to_name
+        })
+        
+        # Thêm Nhân Viên
+        for _, row in to_group.iterrows():
+            nv_name = row['NVKT']
+            nv_tickets = row['Total_Tickets']
+            rows.append({
+                "Hiển Thị": f"   │    └── 👤 {nv_name}",
+                "Số Lượng Tồn": nv_tickets,
+                "_Level": "NVKT",
+                "_Value": nv_name
+            })
+            
+    hierarchy_df = pd.DataFrame(rows)
+    display_df = hierarchy_df[["Hiển Thị", "Số Lượng Tồn"]].copy()
+    display_df.index = range(1, len(display_df) + 1)
+    
+    st.markdown("### 👥 Tổng hợp theo cấp độ")
+    st.info("💡 **Mẹo:** Hãy tích vào ô vuông (checkbox) ở cột ngoài cùng bên trái để xem chi tiết danh sách phiếu tồn.")
+    
+    event = st.dataframe(display_df, use_container_width=True, selection_mode="single-row", on_select="rerun")
     
     if event.selection.rows:
         selected_idx = event.selection.rows[0]
-        selected_nv = summary_df.iloc[selected_idx]['Nhân Viên KT']
+        level = hierarchy_df.iloc[selected_idx]['_Level']
+        value = hierarchy_df.iloc[selected_idx]['_Value']
+        display_name = hierarchy_df.iloc[selected_idx]['Hiển Thị'].replace("🏢", "").replace("├──", "").replace("└──", "").replace("👥", "").replace("👤", "").replace("│", "").strip()
+        
         st.markdown("---")
-        st.markdown(f"### 📋 Chi tiết phiếu tồn của: **{selected_nv}**")
-        details_df = get_pending_details(date_str, loai_phieu, selected_nv)
+        st.markdown(f"### 📋 Chi tiết phiếu tồn của: **{display_name}**")
+        details_df = get_pending_details(start_date, end_date, loai_phieu, level, value)
         if details_df.empty:
             st.warning("Không có chi tiết.")
         else:
