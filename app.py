@@ -186,9 +186,18 @@ def render_pending_tickets_page(loai_phieu):
     
     st.markdown("### 👥 Tổng hợp theo cấp độ")
     st.info("💡 **Mẹo:** Hãy tích vào ô vuông (checkbox) ở cột ngoài cùng bên trái để xem chi tiết danh sách phiếu tồn.")
-    
-    event = st.dataframe(display_df, use_container_width=True, selection_mode="single-row", on_select="rerun")
-    
+    event = st.dataframe(
+        display_df, 
+        use_container_width=True, 
+        selection_mode="single-row", 
+        on_select="rerun",
+        column_config={
+            "Số Lượng Tồn": st.column_config.NumberColumn(
+                "Số Lượng Tồn",
+                alignment="center"
+            )
+        }
+    )
     if event.selection.rows:
         selected_idx = event.selection.rows[0]
         level = hierarchy_df.iloc[selected_idx]['_Level']
