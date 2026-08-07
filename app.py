@@ -118,7 +118,7 @@ if st.session_state.page in ['pending_bhsc', 'pending_pttb']:
 else:
     col_date, _ = st.columns([1, 4])
     with col_date:
-        selected_date = st.date_input("Chọn ngày xem báo cáo:", yesterday)
+        selected_date = st.date_input("Chọn ngày xem báo cáo:", datetime.now())
     date_str = selected_date.strftime("%Y-%m-%d")
     start_date = date_str
     end_date = date_str
