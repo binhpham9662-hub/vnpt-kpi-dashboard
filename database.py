@@ -427,12 +427,10 @@ def process_repeated_tickets_excel(file_path, date_str):
         repeated_df = df[df['MA_TB'].isin(repeated_ma_tbs)].copy()
         
         if not repeated_df.empty:
-            # Sắp xếp theo ngày báo hỏng để lấy thông tin mới nhất
+            # Sắp xếp theo ngày báo hỏng tăng dần (cũ nhất -> mới nhất)
             if 'NGAY_BAO_HONG' in repeated_df.columns:
                 repeated_df['NGAY_BAO_HONG_DT'] = pd.to_datetime(repeated_df['NGAY_BAO_HONG'], dayfirst=True, errors='coerce')
-                repeated_df = repeated_df.sort_values('NGAY_BAO_HONG_DT', ascending=False)
-            
-            latest_df = repeated_df.groupby('MA_TB', as_index=False).first()
+                repeated_df = repeated_df.sort_values(['MA_TB', 'NGAY_BAO_HONG_DT'], ascending=[True, True])
             
             # Load Zalo mapping once
             zalo_account_map = {}
@@ -448,19 +446,27 @@ def process_repeated_tickets_excel(file_path, date_str):
                 logging.error(f"Lỗi đọc zalo.xlsx: {e}")
             
             tickets = {}
-            for _, row in latest_df.iterrows():
-                ma_tb = str(row.get('MA_TB', ''))
-                to_ktdb = str(row.get('TEN_DOI', 'Không xác định'))
-                nguyen_nhan = str(row.get('NGUYEN_NHAN', ''))
-                ngay_bao_hong = str(row.get('NGAY_BAO_HONG', ''))
-                count = counts[ma_tb]
+            for ma_tb, group in repeated_df.groupby('MA_TB'):
+                count = len(group)
                 
-                gio_ton = f"{count} lần báo hỏng (Gần nhất: {ngay_bao_hong})"
+                # Lấy dòng mới nhất để quyết định NVKT, Tổ
+                latest_row = group.iloc[-1]
+                to_ktdb = str(latest_row.get('TEN_DOI', 'Không xác định'))
+                latest_ngay_bao_hong = str(latest_row.get('NGAY_BAO_HONG', ''))
+                
+                gio_ton = f"{count} lần báo hỏng (Gần nhất: {latest_ngay_bao_hong})"
+                
+                # Gộp nguyên nhân các lần
+                nguyen_nhan_list = []
+                for idx, (_, row) in enumerate(group.iterrows(), 1):
+                    nn = str(row.get('NGUYEN_NHAN', ''))
+                    nbh = str(row.get('NGAY_BAO_HONG', ''))
+                    nguyen_nhan_list.append(f"[Lần {idx} - {nbh}] {nn}")
+                nguyen_nhan = "\n".join(nguyen_nhan_list)
                 
                 # Extract NVKT from TEN_KV if available
-                # Example TEN_KV: DAH-MLH-CHUNGNT1(Mê Linh: Hạ Lôi) -> CHUNGNT1
                 nvkt = "Không xác định"
-                ten_kv = str(row.get('TEN_KV', ''))
+                ten_kv = str(latest_row.get('TEN_KV', ''))
                 if ten_kv and '(' in ten_kv:
                     prefix = ten_kv.split('(')[0]
                     parts = prefix.split('-')
@@ -469,12 +475,12 @@ def process_repeated_tickets_excel(file_path, date_str):
                         if account in zalo_account_map:
                             nvkt = str(zalo_account_map[account])
                         else:
-                            nvkt = account # Fallback to account name if not found in zalo
+                            nvkt = account
                 
                 # If still unknown and we have TEN_NV or NGUOI_XU_LY, use them as fallback
                 if nvkt == "Không xác định" or nvkt == "":
-                    nvkt = str(row.get('TEN_NV', 'Không xác định'))
-                    if 'NGUOI_XU_LY' in row: nvkt = str(row['NGUOI_XU_LY'])
+                    nvkt = str(latest_row.get('TEN_NV', 'Không xác định'))
+                    if 'NGUOI_XU_LY' in latest_row: nvkt = str(latest_row['NGUOI_XU_LY'])
                 
                 tickets[ma_tb] = {
                     "Tổ": to_ktdb,
