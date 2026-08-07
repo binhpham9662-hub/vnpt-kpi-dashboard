@@ -326,46 +326,84 @@ def save_pending_tickets(date_str, loai_phieu, tickets_dict):
 
 def get_pending_summary(start_date, end_date, loai_phieu):
     conn = sqlite3.connect(DB_PATH)
-    query = """
-    SELECT To_KTDB, NVKT, COUNT(DISTINCT Ma_TB) as Total_Tickets
-    FROM pending_tickets
-    WHERE Ngay_Bao_Cao >= ? AND Ngay_Bao_Cao <= ? AND Loai_Phieu = ?
-    GROUP BY To_KTDB, NVKT
-    ORDER BY To_KTDB ASC, Total_Tickets DESC
-    """
-    df = pd.read_sql_query(query, conn, params=(start_date, end_date, loai_phieu))
+    
+    if loai_phieu == "BRCD_LAP":
+        # Với Hỏng Lặp, chỉ lấy bản snapshot mới nhất trong khoảng thời gian
+        # Nếu chọn theo ngày (start_date == end_date), sẽ lọc thêm theo NGAY_BAO_HONG trong Gio_Ton
+        query = """
+        SELECT To_KTDB, NVKT, COUNT(DISTINCT Ma_TB) as Total_Tickets
+        FROM pending_tickets
+        WHERE Ngay_Bao_Cao = (
+            SELECT MAX(Ngay_Bao_Cao) FROM pending_tickets 
+            WHERE Loai_Phieu = 'BRCD_LAP' AND Ngay_Bao_Cao <= ?
+        ) AND Loai_Phieu = 'BRCD_LAP'
+        """
+        params = [end_date]
+        if start_date == end_date:
+            from datetime import datetime
+            date_filter = datetime.strptime(start_date, "%Y-%m-%d").strftime("%d/%m/%Y")
+            query += " AND Gio_Ton LIKE ?"
+            params.append(f"%{date_filter}%")
+            
+        query += """
+        GROUP BY To_KTDB, NVKT
+        ORDER BY To_KTDB ASC, Total_Tickets DESC
+        """
+    else:
+        query = """
+        SELECT To_KTDB, NVKT, COUNT(DISTINCT Ma_TB) as Total_Tickets
+        FROM pending_tickets
+        WHERE Ngay_Bao_Cao >= ? AND Ngay_Bao_Cao <= ? AND Loai_Phieu = ?
+        GROUP BY To_KTDB, NVKT
+        ORDER BY To_KTDB ASC, Total_Tickets DESC
+        """
+        params = [start_date, end_date, loai_phieu]
+        
+    df = pd.read_sql_query(query, conn, params=params)
     conn.close()
     return df
 
 def get_pending_details(start_date, end_date, loai_phieu, level="NVKT", filter_value=""):
     conn = sqlite3.connect(DB_PATH)
+    
+    base_where = "Ngay_Bao_Cao >= ? AND Ngay_Bao_Cao <= ? AND Loai_Phieu = ?"
+    params = [start_date, end_date, loai_phieu]
+    
+    if loai_phieu == "BRCD_LAP":
+        base_where = "Ngay_Bao_Cao = (SELECT MAX(Ngay_Bao_Cao) FROM pending_tickets WHERE Loai_Phieu = 'BRCD_LAP' AND Ngay_Bao_Cao <= ?) AND Loai_Phieu = 'BRCD_LAP'"
+        params = [end_date]
+        if start_date == end_date:
+            from datetime import datetime
+            date_filter = datetime.strptime(start_date, "%Y-%m-%d").strftime("%d/%m/%Y")
+            base_where += " AND Gio_Ton LIKE ?"
+            params.append(f"%{date_filter}%")
+            
     if level == "CENTER":
-        query = """
+        query = f"""
         SELECT Ma_TB as 'Mã Thuê Bao', To_KTDB as 'Tổ KTĐB', NVKT as 'Nhân Viên KT', MAX(Gio_Ton) as 'Giờ/Ngày Tồn', MAX(Ly_Do_Ton) as 'Lý Do Tồn'
         FROM pending_tickets
-        WHERE Ngay_Bao_Cao >= ? AND Ngay_Bao_Cao <= ? AND Loai_Phieu = ?
+        WHERE {base_where}
         GROUP BY Ma_TB, To_KTDB, NVKT
         ORDER BY MAX(Gio_Ton) DESC
         """
-        params = (start_date, end_date, loai_phieu)
     elif level == "TEAM":
-        query = """
+        query = f"""
         SELECT Ma_TB as 'Mã Thuê Bao', NVKT as 'Nhân Viên KT', MAX(Gio_Ton) as 'Giờ/Ngày Tồn', MAX(Ly_Do_Ton) as 'Lý Do Tồn'
         FROM pending_tickets
-        WHERE Ngay_Bao_Cao >= ? AND Ngay_Bao_Cao <= ? AND Loai_Phieu = ? AND To_KTDB = ?
+        WHERE {base_where} AND To_KTDB = ?
         GROUP BY Ma_TB, NVKT
         ORDER BY MAX(Gio_Ton) DESC
         """
-        params = (start_date, end_date, loai_phieu, filter_value)
+        params.append(filter_value)
     else: # NVKT
-        query = """
+        query = f"""
         SELECT Ma_TB as 'Mã Thuê Bao', MAX(Gio_Ton) as 'Giờ/Ngày Tồn', MAX(Ly_Do_Ton) as 'Lý Do Tồn'
         FROM pending_tickets
-        WHERE Ngay_Bao_Cao >= ? AND Ngay_Bao_Cao <= ? AND Loai_Phieu = ? AND NVKT = ?
+        WHERE {base_where} AND NVKT = ?
         GROUP BY Ma_TB
         ORDER BY MAX(Gio_Ton) DESC
         """
-        params = (start_date, end_date, loai_phieu, filter_value)
+        params.append(filter_value)
         
     df = pd.read_sql_query(query, conn, params=params)
     conn.close()
