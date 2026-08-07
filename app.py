@@ -240,7 +240,7 @@ def render_pending_tickets_page(loai_phieu):
         else:
             details_df.index = range(1, len(details_df) + 1)
             if loai_phieu == 'BRCD_LAP':
-                st.markdown('<style>[data-testid="stTable"] th:last-child, [data-testid="stTable"] td:last-child { width: 65%; min-width: 400px; } [data-testid="stTable"] table { width: 100%; }</style>', unsafe_allow_html=True)
+                st.markdown('<style>[data-testid="stTable"] th:last-child, [data-testid="stTable"] td:last-child { width: 65%; min-width: 400px; } [data-testid="stTable"] table { width: 100%; } [data-testid="stTable"] td { white-space: pre-wrap; }</style>', unsafe_allow_html=True)
                 st.table(details_df)
             else:
                 st.dataframe(details_df, use_container_width=True)
@@ -252,7 +252,7 @@ def render_pending_tickets_page(loai_phieu):
             st.warning("Không có chi tiết.")
         else:
             details_df.index = range(1, len(details_df) + 1)
-            st.markdown('<style>[data-testid="stTable"] th:last-child, [data-testid="stTable"] td:last-child { width: 65%; min-width: 400px; } [data-testid="stTable"] table { width: 100%; }</style>', unsafe_allow_html=True)
+            st.markdown('<style>[data-testid="stTable"] th:last-child, [data-testid="stTable"] td:last-child { width: 65%; min-width: 400px; } [data-testid="stTable"] table { width: 100%; } [data-testid="stTable"] td { white-space: pre-wrap; }</style>', unsafe_allow_html=True)
             st.table(details_df)
 
 def render_main_page():
