@@ -499,9 +499,16 @@ def run_download_sm1():
             except: pass
             
             from database import process_repeated_tickets_excel
-            today_str = datetime.now().strftime("%Y-%m-%d")
-            process_repeated_tickets_excel(file_path, today_str)
+            from datetime import timedelta
+            yesterday_str = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+            process_repeated_tickets_excel(file_path, yesterday_str)
             
+            # Đẩy lên Web ngay sau khi lấy xong
+            import subprocess
+            bat_path = os.path.join(os.path.dirname(__file__), "sync_to_web.bat")
+            if os.path.exists(bat_path):
+                subprocess.run([bat_path], check=True, shell=True)
+                
         except Exception as e:
             logging.error(f"Lỗi tải Excel: {e}")
             try: bot.send_message(CHAT_ID, f"❌ Lỗi tải Excel SM1 C12: {str(e)}")
@@ -511,12 +518,34 @@ def run_download_sm1():
 
 def listen_for_triggers():
     import threading
+    import queue
+    import json
+    
+    task_queue = queue.Queue()
+    
+    def worker():
+        while True:
+            msg = task_queue.get()
+            if msg == "RUN_KPI":
+                logging.info("Thực thi lấy Báo cáo KPI theo yêu cầu từ Web...")
+                try:
+                    perform_scraping()
+                except Exception as e:
+                    logging.error(f"Lỗi khi chạy KPI: {e}")
+            elif msg == "RUN_SM1":
+                logging.info("Thực thi lấy Báo cáo Hỏng Lặp SM1 theo yêu cầu từ Web...")
+                try:
+                    run_download_sm1()
+                except Exception as e:
+                    logging.error(f"Lỗi khi chạy SM1: {e}")
+            task_queue.task_done()
+            
+    threading.Thread(target=worker, daemon=True).start()
+    
     def listener():
-        import json
         logging.info("Bắt đầu luồng nghe tín hiệu từ Web qua ntfy.sh (topic: vnpt_scraper_trigger_b8f2d9a74c1e9x3q)...")
         while True:
             try:
-                # Dùng long polling hoặc stream tùy ntfy.sh
                 resp = requests.get("https://ntfy.sh/vnpt_scraper_trigger_b8f2d9a74c1e9x3q/json", stream=True, timeout=60)
                 for line in resp.iter_lines():
                     if line:
@@ -524,18 +553,13 @@ def listen_for_triggers():
                         if data.get('event') == 'message':
                             msg = data.get('message', '').strip()
                             logging.info(f"Nhận được tín hiệu từ Web: {msg}")
-                            if msg == "RUN_KPI":
-                                logging.info("Thực thi lấy Báo cáo KPI theo yêu cầu từ Web...")
-                                perform_scraping()
-                            elif msg == "RUN_SM1":
-                                logging.info("Thực thi lấy Báo cáo Hỏng Lặp SM1 theo yêu cầu từ Web...")
-                                run_download_sm1()
+                            if msg in ["RUN_KPI", "RUN_SM1"]:
+                                task_queue.put(msg)
             except Exception as e:
                 logging.error(f"Lỗi kết nối ntfy listener: {e}")
                 time.sleep(5)
     
-    t = threading.Thread(target=listener, daemon=True)
-    t.start()
+    threading.Thread(target=listener, daemon=True).start()
 
 if __name__ == "__main__":
     from database import init_db
