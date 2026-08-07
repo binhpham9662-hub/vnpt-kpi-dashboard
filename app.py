@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from database import get_kpi_for_date, init_db, get_pending_summary, get_pending_details
 import os
 
@@ -82,6 +82,8 @@ with st.sidebar:
 # Date Selection
 st.markdown("### 📅 Bộ Lọc Thời Gian")
 
+yesterday = datetime.now() - timedelta(days=1)
+
 if st.session_state.page in ['pending_bhsc', 'pending_pttb']:
     import calendar
     col_filter_type, col_date = st.columns([1, 3])
@@ -90,7 +92,7 @@ if st.session_state.page in ['pending_bhsc', 'pending_pttb']:
     
     with col_date:
         if date_filter_type == "Theo Ngày":
-            selected_date = st.date_input("Chọn ngày:", datetime.now())
+            selected_date = st.date_input("Chọn ngày:", yesterday)
             start_date = selected_date.strftime("%Y-%m-%d")
             end_date = start_date
         elif date_filter_type == "Theo Tháng":
@@ -105,9 +107,9 @@ if st.session_state.page in ['pending_bhsc', 'pending_pttb']:
             start_date = f"{selected_year}-{selected_month:02d}-01"
             end_date = f"{selected_year}-{selected_month:02d}-{last_day:02d}"
         else:
-            selected_range = st.date_input("Chọn khoảng thời gian:", [datetime.now(), datetime.now()])
+            selected_range = st.date_input("Chọn khoảng thời gian:", [yesterday, yesterday])
             if isinstance(selected_range, tuple) or isinstance(selected_range, list):
-                start_date = selected_range[0].strftime("%Y-%m-%d") if len(selected_range) > 0 else datetime.now().strftime("%Y-%m-%d")
+                start_date = selected_range[0].strftime("%Y-%m-%d") if len(selected_range) > 0 else yesterday.strftime("%Y-%m-%d")
                 end_date = selected_range[1].strftime("%Y-%m-%d") if len(selected_range) > 1 else start_date
             else:
                 start_date = selected_range.strftime("%Y-%m-%d")
@@ -116,7 +118,7 @@ if st.session_state.page in ['pending_bhsc', 'pending_pttb']:
 else:
     col_date, _ = st.columns([1, 4])
     with col_date:
-        selected_date = st.date_input("Chọn ngày xem báo cáo:", datetime.now())
+        selected_date = st.date_input("Chọn ngày xem báo cáo:", yesterday)
     date_str = selected_date.strftime("%Y-%m-%d")
     start_date = date_str
     end_date = date_str
