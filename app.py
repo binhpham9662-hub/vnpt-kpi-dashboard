@@ -240,8 +240,23 @@ def render_pending_tickets_page(loai_phieu):
         else:
             details_df.index = range(1, len(details_df) + 1)
             if loai_phieu == 'BRCD_LAP':
-                st.markdown('<style>[data-testid="stTable"] th:last-child, [data-testid="stTable"] td:last-child { width: 65%; min-width: 400px; } [data-testid="stTable"] table { width: 100%; } [data-testid="stTable"] td { white-space: pre-wrap; }</style>', unsafe_allow_html=True)
-                st.table(details_df)
+                import re
+                details_df['Nguyên Nhân'] = details_df['Nguyên Nhân'].apply(lambda x: re.sub(r'(\[Lần \d+ - [^\]]+\])', r'<b>\1</b>', str(x)).replace('\n', '<br>'))
+                html_table = details_df.to_html(escape=False, index=False, classes='styled-table').replace('\n', '')
+                css = """
+                <style>
+                .styled-table { border-collapse: collapse; margin: 25px 0; font-size: 0.9em; font-family: sans-serif; width: 100%; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15); table-layout: fixed; }
+                .styled-table thead tr { background-color: #f3f6f8; color: #333; text-align: left; }
+                .styled-table th, .styled-table td { padding: 12px 15px; border-bottom: 1px solid #dddddd; line-height: 1.5; word-wrap: break-word; }
+                .styled-table th:nth-child(1), .styled-table td:nth-child(1) { width: 15%; }
+                .styled-table th:nth-child(2), .styled-table td:nth-child(2) { width: 15%; }
+                .styled-table th:nth-child(3), .styled-table td:nth-child(3) { width: 15%; }
+                .styled-table th:last-child, .styled-table td:last-child { width: 55%; }
+                .styled-table tbody tr:nth-of-type(even) { background-color: #f9f9f9; }
+                .styled-table tbody tr:hover { background-color: #f1f1f1; }
+                </style>
+                """
+                st.markdown(css + html_table, unsafe_allow_html=True)
             else:
                 st.dataframe(details_df, use_container_width=True)
     elif loai_phieu == 'BRCD_LAP' and date_filter_type == "Theo Tháng":
@@ -251,9 +266,23 @@ def render_pending_tickets_page(loai_phieu):
         if details_df.empty:
             st.warning("Không có chi tiết.")
         else:
-            details_df.index = range(1, len(details_df) + 1)
-            st.markdown('<style>[data-testid="stTable"] th:last-child, [data-testid="stTable"] td:last-child { width: 65%; min-width: 400px; } [data-testid="stTable"] table { width: 100%; } [data-testid="stTable"] td { white-space: pre-wrap; }</style>', unsafe_allow_html=True)
-            st.table(details_df)
+            import re
+            details_df['Nguyên Nhân'] = details_df['Nguyên Nhân'].apply(lambda x: re.sub(r'(\[Lần \d+ - [^\]]+\])', r'<b>\1</b>', str(x)).replace('\n', '<br>'))
+            html_table = details_df.to_html(escape=False, index=False, classes='styled-table').replace('\n', '')
+            css = """
+            <style>
+            .styled-table { border-collapse: collapse; margin: 25px 0; font-size: 0.9em; font-family: sans-serif; width: 100%; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15); table-layout: fixed; }
+            .styled-table thead tr { background-color: #f3f6f8; color: #333; text-align: left; }
+            .styled-table th, .styled-table td { padding: 12px 15px; border-bottom: 1px solid #dddddd; line-height: 1.5; word-wrap: break-word; }
+            .styled-table th:nth-child(1), .styled-table td:nth-child(1) { width: 15%; }
+            .styled-table th:nth-child(2), .styled-table td:nth-child(2) { width: 15%; }
+            .styled-table th:nth-child(3), .styled-table td:nth-child(3) { width: 15%; }
+            .styled-table th:last-child, .styled-table td:last-child { width: 55%; }
+            .styled-table tbody tr:nth-of-type(even) { background-color: #f9f9f9; }
+            .styled-table tbody tr:hover { background-color: #f1f1f1; }
+            </style>
+            """
+            st.markdown(css + html_table, unsafe_allow_html=True)
 
 def render_main_page():
 
