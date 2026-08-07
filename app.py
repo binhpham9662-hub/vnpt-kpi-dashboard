@@ -108,7 +108,8 @@ if st.session_state.page in ['pending_bhsc', 'pending_pttb', 'pending_brcd_lap']
     import calendar
     col_filter_type, col_date = st.columns([1, 3])
     with col_filter_type:
-        date_filter_type = st.radio("Chế độ xem:", ["Theo Ngày", "Theo Tháng", "Tùy chọn"])
+        default_idx = 1 if st.session_state.page == 'pending_brcd_lap' else 0
+        date_filter_type = st.radio("Chế độ xem:", ["Theo Ngày", "Theo Tháng", "Tùy chọn"], index=default_idx)
     
     with col_date:
         if date_filter_type == "Theo Ngày":
