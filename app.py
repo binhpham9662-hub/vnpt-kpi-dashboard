@@ -240,17 +240,7 @@ def render_pending_tickets_page(loai_phieu):
         else:
             details_df.index = range(1, len(details_df) + 1)
             if loai_phieu == 'BRCD_LAP':
-                html_table = details_df.to_html(escape=False, classes='styled-table')
-                css = """
-                <style>
-                .styled-table { border-collapse: collapse; margin: 25px 0; font-size: 0.9em; font-family: sans-serif; min-width: 400px; width: 100%; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15); }
-                .styled-table thead tr { background-color: #f3f6f8; color: #333; text-align: left; }
-                .styled-table th, .styled-table td { padding: 12px 15px; border-bottom: 1px solid #dddddd; line-height: 1.5; }
-                .styled-table tbody tr:nth-of-type(even) { background-color: #f9f9f9; }
-                .styled-table tbody tr:hover { background-color: #f1f1f1; }
-                </style>
-                """
-                st.markdown(css + html_table, unsafe_allow_html=True)
+                st.table(details_df)
             else:
                 st.dataframe(details_df, use_container_width=True)
     elif loai_phieu == 'BRCD_LAP' and date_filter_type == "Theo Tháng":
@@ -261,17 +251,7 @@ def render_pending_tickets_page(loai_phieu):
             st.warning("Không có chi tiết.")
         else:
             details_df.index = range(1, len(details_df) + 1)
-            html_table = details_df.to_html(escape=False, classes='styled-table')
-            css = """
-            <style>
-            .styled-table { border-collapse: collapse; margin: 25px 0; font-size: 0.9em; font-family: sans-serif; min-width: 400px; width: 100%; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15); }
-            .styled-table thead tr { background-color: #f3f6f8; color: #333; text-align: left; }
-            .styled-table th, .styled-table td { padding: 12px 15px; border-bottom: 1px solid #dddddd; line-height: 1.5; }
-            .styled-table tbody tr:nth-of-type(even) { background-color: #f9f9f9; }
-            .styled-table tbody tr:hover { background-color: #f1f1f1; }
-            </style>
-            """
-            st.markdown(css + html_table, unsafe_allow_html=True)
+            st.table(details_df)
 
 def render_main_page():
 
