@@ -413,7 +413,9 @@ def get_pending_details(start_date, end_date, loai_phieu, level="NVKT", filter_v
             'Giờ/Ngày Tồn': 'Số Lần Báo Hỏng (Gần nhất)',
             'Lý Do Tồn': 'Nguyên Nhân'
         })
-        
+        if 'Số Lần Báo Hỏng (Gần nhất)' in df.columns:
+            df = df.drop(columns=['Số Lần Báo Hỏng (Gần nhất)'])
+            
     return df
 
 def process_repeated_tickets_excel(file_path, date_str):
@@ -461,8 +463,8 @@ def process_repeated_tickets_excel(file_path, date_str):
                 for idx, (_, row) in enumerate(group.iterrows(), 1):
                     nn = str(row.get('NGUYEN_NHAN', ''))
                     nbh = str(row.get('NGAY_BAO_HONG', ''))
-                    nguyen_nhan_list.append(f"[Lần {idx} - {nbh}] {nn}")
-                nguyen_nhan = "\n".join(nguyen_nhan_list)
+                    nguyen_nhan_list.append(f"<b>[Lần {idx} - {nbh}]</b> {nn}")
+                nguyen_nhan = "<br>".join(nguyen_nhan_list)
                 
                 # Extract NVKT from TEN_KV if available
                 nvkt = "Không xác định"
