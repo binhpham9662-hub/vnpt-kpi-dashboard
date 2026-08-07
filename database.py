@@ -369,7 +369,64 @@ def get_pending_details(start_date, end_date, loai_phieu, level="NVKT", filter_v
         
     df = pd.read_sql_query(query, conn, params=params)
     conn.close()
+    
+    if loai_phieu == 'BRCD_LAP':
+        df = df.rename(columns={
+            'Giờ/Ngày Tồn': 'Số Lần Báo Hỏng (Gần nhất)',
+            'Lý Do Tồn': 'Nguyên Nhân'
+        })
+        
     return df
+
+def process_repeated_tickets_excel(file_path, date_str):
+    try:
+        df = pd.read_excel(file_path)
+        
+        # Đếm số lần lặp MA_TB
+        counts = df['MA_TB'].value_counts()
+        repeated_ma_tbs = counts[counts >= 2].index
+        
+        repeated_df = df[df['MA_TB'].isin(repeated_ma_tbs)].copy()
+        
+        if not repeated_df.empty:
+            # Sắp xếp theo ngày báo hỏng để lấy thông tin mới nhất
+            if 'NGAY_BAO_HONG' in repeated_df.columns:
+                repeated_df['NGAY_BAO_HONG_DT'] = pd.to_datetime(repeated_df['NGAY_BAO_HONG'], dayfirst=True, errors='coerce')
+                repeated_df = repeated_df.sort_values('NGAY_BAO_HONG_DT', ascending=False)
+            
+            latest_df = repeated_df.groupby('MA_TB', as_index=False).first()
+            
+            tickets = {}
+            for _, row in latest_df.iterrows():
+                ma_tb = str(row.get('MA_TB', ''))
+                to_ktdb = str(row.get('TEN_DOI', 'Không xác định'))
+                nguyen_nhan = str(row.get('NGUYEN_NHAN', ''))
+                ngay_bao_hong = str(row.get('NGAY_BAO_HONG', ''))
+                count = counts[ma_tb]
+                
+                gio_ton = f"{count} lần báo hỏng (Gần nhất: {ngay_bao_hong})"
+                
+                # Nếu file Excel không có cột tên nhân viên, ta tạm để "Không xác định"
+                nvkt = str(row.get('TEN_NV', 'Không xác định'))
+                if 'NGUOI_XU_LY' in row: nvkt = str(row['NGUOI_XU_LY'])
+                
+                tickets[ma_tb] = {
+                    "Tổ": to_ktdb,
+                    "NVKT": nvkt,
+                    "GIO_TON": gio_ton,
+                    "LY_DO_TON": nguyen_nhan
+                }
+                
+            save_pending_tickets(date_str, "BRCD_LAP", tickets)
+            logging.info(f"Đã xử lý và lưu {len(tickets)} thuê bao hỏng lặp cho ngày {date_str}")
+        else:
+            save_pending_tickets(date_str, "BRCD_LAP", {})
+            logging.info("Không có thuê bao hỏng lặp nào.")
+            
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        logging.error(f"Lỗi khi xử lý file phiếu lặp Excel: {e}")
 
 if __name__ == '__main__':
     init_db()

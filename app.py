@@ -84,7 +84,7 @@ st.markdown("### 📅 Bộ Lọc Thời Gian")
 
 yesterday = datetime.now() - timedelta(days=1)
 
-if st.session_state.page in ['pending_bhsc', 'pending_pttb']:
+if st.session_state.page in ['pending_bhsc', 'pending_pttb', 'pending_brcd_lap']:
     import calendar
     col_filter_type, col_date = st.columns([1, 3])
     with col_filter_type:
@@ -133,12 +133,13 @@ except Exception as e:
     st.error(f"Lỗi truy xuất cơ sở dữ liệu: {e}")
     st.stop()
 
-if df.empty and st.session_state.page not in ['pending_bhsc', 'pending_pttb']:
+if df.empty and st.session_state.page not in ['pending_bhsc', 'pending_pttb', 'pending_brcd_lap']:
     st.info(f"Chưa có dữ liệu KPI cho ngày {date_str}. Vui lòng kiểm tra lại quá trình tải dữ liệu hoặc chọn ngày khác.")
     st.stop()
 
 def render_pending_tickets_page(loai_phieu):
-    st.subheader(f"Bảng Tổng Hợp Phiếu Tồn {loai_phieu}")
+    title_text = f"Bảng Chi Tiết Phiếu Hỏng Lặp" if loai_phieu == 'BRCD_LAP' else f"Bảng Tổng Hợp Phiếu Tồn {loai_phieu}"
+    st.subheader(title_text)
     try:
         summary_df = get_pending_summary(start_date, end_date, loai_phieu)
     except Exception as e:
@@ -183,19 +184,22 @@ def render_pending_tickets_page(loai_phieu):
             })
             
     hierarchy_df = pd.DataFrame(rows)
-    display_df = hierarchy_df[["Hiển Thị", "Số Lượng Tồn"]].copy()
+    qty_col_name = "Số Lượng Thuê Bao" if loai_phieu == 'BRCD_LAP' else "Số Lượng Tồn"
+    hierarchy_df = hierarchy_df.rename(columns={"Số Lượng Tồn": qty_col_name})
+    
+    display_df = hierarchy_df[["Hiển Thị", qty_col_name]].copy()
     display_df.index = range(1, len(display_df) + 1)
     
     st.markdown("### 👥 Tổng hợp theo cấp độ")
-    st.info("💡 **Mẹo:** Hãy tích vào ô vuông (checkbox) ở cột ngoài cùng bên trái để xem chi tiết danh sách phiếu tồn.")
+    st.info("💡 **Mẹo:** Hãy tích vào ô vuông (checkbox) ở cột ngoài cùng bên trái để xem chi tiết danh sách.")
     event = st.dataframe(
         display_df, 
         use_container_width=True, 
         selection_mode="single-row", 
         on_select="rerun",
         column_config={
-            "Số Lượng Tồn": st.column_config.NumberColumn(
-                "Số Lượng Tồn",
+            qty_col_name: st.column_config.NumberColumn(
+                qty_col_name,
                 alignment="center"
             )
         }
@@ -207,7 +211,8 @@ def render_pending_tickets_page(loai_phieu):
         display_name = hierarchy_df.iloc[selected_idx]['Hiển Thị'].replace("🏢", "").replace("├──", "").replace("└──", "").replace("👥", "").replace("👤", "").replace("│", "").strip()
         
         st.markdown("---")
-        st.markdown(f"### 📋 Chi tiết phiếu tồn của: **{display_name}**")
+        detail_title = f"Chi tiết thuê bao hỏng lặp của: **{display_name}**" if loai_phieu == 'BRCD_LAP' else f"Chi tiết phiếu tồn của: **{display_name}**"
+        st.markdown(f"### 📋 {detail_title}")
         details_df = get_pending_details(start_date, end_date, loai_phieu, level, value)
         if details_df.empty:
             st.warning("Không có chi tiết.")
@@ -316,6 +321,10 @@ def render_team_table(metric_type):
         })
     elif metric_type == 'brcd_lap':
         st.subheader("📊 Bảng Chỉ tiêu C1.2 BRCĐ lặp lại")
+        if st.button("👁 Xem Bảng Phân Cấp Chi Tiết Phiếu Hỏng Lặp (Giống bảng tồn)", use_container_width=True, type="primary"):
+            st.session_state.page = 'pending_brcd_lap'
+            st.rerun()
+            
         brcd_lap_agg = df.groupby('To_KTDB').agg(
             Tong_SM5=('SM5', 'sum'), Tong_SM6=('SM6', 'sum'),
             Tang_Khong_Dat_BRCD_Lap=('Tang_Khong_Dat_BRCD_Lap', 'sum')
@@ -656,6 +665,8 @@ elif st.session_state.page == 'pending_bhsc':
     render_pending_tickets_page('BHSC')
 elif st.session_state.page == 'pending_pttb':
     render_pending_tickets_page('PTTB')
+elif st.session_state.page == 'pending_brcd_lap':
+    render_pending_tickets_page('BRCD_LAP')
 
 st.markdown("---")
 st.caption("Thiết kế và phát triển dựa trên Streamlit & Pandas. Tự động lấy dữ liệu bằng Playwright.")

@@ -335,6 +335,180 @@ def sync_overdue_pttb():
     except Exception as e:
         logging.error(f"Lỗi khi đồng bộ PTTB: {e}")
 
+def get_report_dates():
+    today = datetime.now()
+    if today.day > 25:
+        end_month = (today.month % 12) + 1
+        end_year = today.year + (1 if today.month == 12 else 0)
+        start_month = today.month
+        start_year = today.year
+    else:
+        end_month = today.month
+        end_year = today.year
+        start_month = 12 if today.month == 1 else today.month - 1
+        start_year = today.year - (1 if today.month == 1 else 0)
+        
+    start_date_str = f"26/{start_month:02d}/{start_year}"
+    end_date_str = f"25/{end_month:02d}/{end_year}"
+    return start_date_str, end_date_str
+
+def run_download_sm1():
+    import glob
+    import os
+    import re
+    DOWNLOAD_DIR = "downloads"
+    logging.info("Dọn dẹp file SM1 cũ...")
+    for f in glob.glob(os.path.join(DOWNLOAD_DIR, "SM1_C12_*.xlsx")):
+        try:
+            os.remove(f)
+        except:
+            pass
+            
+    logging.info("Bắt đầu quá trình tải báo cáo SM1 C12 2026...")
+    
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=False, channel="msedge", args=['--start-maximized'])
+        context = browser.new_context(accept_downloads=True, no_viewport=True)
+        page = context.new_page()
+        
+        target_url = "https://baocao.hanoi.vnpt.vn/report/report-info?id=267215&menu_id=276194"
+        page.goto(target_url, timeout=60000)
+        
+        try:
+            page.wait_for_selector("input[placeholder='Tên đăng nhập']", timeout=5000)
+            needs_login = True
+        except:
+            needs_login = False
+            
+        if needs_login:
+            logging.info("Yêu cầu đăng nhập...")
+            page.get_by_placeholder("Tên đăng nhập").fill("binhpt5")
+            page.get_by_placeholder("Mật khẩu").fill("Binh#1991")
+            page.get_by_role("button", name="ĐĂNG NHẬP").click()
+            
+            logging.info("Hệ thống yêu cầu OTP. Đang chờ lấy OTP từ ntfy.sh...")
+            try: bot.send_message(CHAT_ID, "Hệ thống SM1 C12 đang chờ OTP...")
+            except: pass
+            
+            current_otp = get_otp_from_ntfy(180)
+            if not current_otp:
+                logging.error("Không nhận được OTP, dừng tiến trình báo cáo.")
+                browser.close()
+                return
+            
+            logging.info(f"Đã nhận OTP: {current_otp}")
+            try:
+                page.wait_for_timeout(2000)
+                page.locator("input:visible").first.fill(current_otp)
+                page.get_by_role("button", name="ĐĂNG NHẬP").click()
+            except Exception as e:
+                logging.error(f"Lỗi nhập OTP: {e}")
+                browser.close()
+                return
+                
+            page.wait_for_load_state("networkidle")
+            page.wait_for_timeout(2000)
+            
+        page.goto(target_url, timeout=60000)
+        page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(3000)
+        
+        logging.info("Chọn Đơn vị...")
+        try:
+            page.locator('ngx-dropdown-treeview button.dropdown-toggle').first.click(timeout=5000)
+            page.wait_for_timeout(1000)
+            page.locator("ngx-dropdown-treeview input[placeholder='Tìm kiếm']").first.fill("TTVT Đông Anh")
+            page.wait_for_timeout(1000)
+            page.get_by_text("TTVT Đông Anh", exact=False).last.click()
+            page.keyboard.press("Escape")
+        except Exception as e:
+            logging.error(f"Lỗi khi chọn Đơn vị: {e}")
+            
+        page.wait_for_timeout(1000)
+
+        start_date, end_date = get_report_dates()
+        logging.info(f"Chọn ngày: {start_date} đến {end_date}")
+        try:
+            inputs = page.locator("input.mat-datepicker-input")
+            if inputs.count() >= 2:
+                inputs.nth(0).click(timeout=5000, force=True)
+                page.wait_for_timeout(1000)
+                inputs.nth(0).click(timeout=5000, force=True)
+                page.wait_for_timeout(500)
+                page.keyboard.press("Control+A")
+                page.keyboard.type(start_date)
+                
+                page.wait_for_timeout(500)
+                page.keyboard.press("Escape")
+                page.mouse.click(10, 10)
+                page.wait_for_timeout(1000)
+            else:
+                logging.warning("Không tìm thấy đủ 2 ô nhập ngày mat-datepicker-input")
+        except Exception as e:
+            logging.error(f"Lỗi nhập ngày: {e}")
+
+        page.wait_for_timeout(1000)
+
+        logging.info("Chọn Loại phiếu...")
+        try:
+            dropdown = page.locator('ng-select').filter(has_text='HTTT').first
+            dropdown.click(timeout=5000)
+            page.wait_for_timeout(1000)
+            
+            page.keyboard.type("SM1 C12 2026")
+            page.wait_for_timeout(1000)
+            
+            page.keyboard.press("Enter")
+            page.wait_for_timeout(500)
+        except Exception as e:
+            logging.error(f"Lỗi chọn Loại phiếu: {e}")
+
+        page.wait_for_timeout(1000)
+
+        try:
+            page.locator("button:has-text('Báo cáo'), a:has-text('Báo cáo')").locator("visible=true").first.click()
+            logging.info("Đã bấm Báo cáo. Đang chờ dữ liệu load (khoảng 10s)...")
+            page.wait_for_timeout(10000)
+        except Exception as e:
+            logging.error(f"Lỗi khi bấm nút Báo cáo: {e}")
+
+        logging.info("Bắt đầu tải Excel...")
+        try:
+            btn_xuat_excel = page.locator("button:has-text('Xuất Excel'), a:has-text('Xuất Excel'), span:has-text('Xuất Excel')").locator("visible=true").first
+            btn_xuat_excel.wait_for(state="visible", timeout=30000)
+            btn_xuat_excel.click()
+            logging.info("Đã bấm Xuất Excel, đợi menu...")
+            
+            page.wait_for_timeout(2000)
+            
+            btn_tat_ca = page.get_by_text("Tất cả dữ liệu", exact=False).locator("visible=true").last
+            btn_tat_ca.wait_for(state="visible", timeout=15000)
+            
+            with page.expect_download(timeout=90000) as download_info:
+                btn_tat_ca.click()
+                
+            download = download_info.value
+            os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+            
+            file_name = f"SM1_C12_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            file_path = os.path.join(DOWNLOAD_DIR, file_name)
+            download.save_as(file_path)
+            logging.info(f"✅ Đã tải thành công file Excel: {file_path}")
+            
+            try: bot.send_message(CHAT_ID, f"✅ Đã tải thành công báo cáo SM1 C12 2026: {file_name}")
+            except: pass
+            
+            from database import process_repeated_tickets_excel
+            today_str = datetime.now().strftime("%Y-%m-%d")
+            process_repeated_tickets_excel(file_path, today_str)
+            
+        except Exception as e:
+            logging.error(f"Lỗi tải Excel: {e}")
+            try: bot.send_message(CHAT_ID, f"❌ Lỗi tải Excel SM1 C12: {str(e)}")
+            except: pass
+
+        browser.close()
+
 if __name__ == "__main__":
     from database import init_db
     init_db()
@@ -342,11 +516,13 @@ if __name__ == "__main__":
     schedule.every().day.at("10:00").do(job)
     schedule.every().day.at("06:00").do(sync_overdue_bhsc)
     schedule.every().day.at("06:05").do(sync_overdue_pttb)
+    schedule.every().day.at("06:15").do(run_download_sm1)
     
     logging.info("Hệ thống đã khởi động. Đang chạy thử nghiệm ngay bây giờ...")
     job()
     sync_overdue_bhsc()
     sync_overdue_pttb()
+    # run_download_sm1() # Tạm thời không tự chạy SM1 khi khởi động để tránh spam OTP
     
     while True:
         schedule.run_pending()
