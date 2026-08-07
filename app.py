@@ -501,6 +501,7 @@ def render_team_detail():
     team_df['Đơn vị'] = team_df['Ma_NV'] + " - " + team_df['Ten_NV']
     
     if st.session_state.selected_metric == 'brcd':
+        team_df = team_df.sort_values(by=['Tang_Khong_Dat_BRCD', 'SM4'], ascending=[False, False])
         display_df = pd.DataFrame({
             'Đơn vị': team_df['Đơn vị'],
             'SM3': team_df['SM3'],
@@ -509,6 +510,7 @@ def render_team_detail():
             'Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCĐ đúng quy định không tính hẹn': team_df['Ty_Le_BRCD'].apply(lambda x: f"{x*100:.2f}%")
         })
     elif st.session_state.selected_metric == 'brcd_lap':
+        team_df = team_df.sort_values(by=['Tang_Khong_Dat_BRCD_Lap', 'SM5'], ascending=[False, False])
         display_df = pd.DataFrame({
             'Đơn vị': team_df['Đơn vị'],
             'SM1': team_df['SM5'],
@@ -517,6 +519,7 @@ def render_team_detail():
             'Tỷ lệ thuê bao báo hỏng dịch vụ BRCĐ lặp lại': team_df['Ty_Le_BRCD_Lap'].apply(lambda x: f"{x*100:.2f}%")
         })
     else:
+        team_df = team_df.sort_values(by=['Tang_Khong_Dat_CLCD', 'SM2'], ascending=[False, False])
         display_df = pd.DataFrame({
             'Đơn vị': team_df['Đơn vị'],
             'SM1': team_df['SM1'],
