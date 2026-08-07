@@ -509,21 +509,53 @@ def run_download_sm1():
 
         browser.close()
 
+def listen_for_triggers():
+    import threading
+    def listener():
+        import json
+        logging.info("Bắt đầu luồng nghe tín hiệu từ Web qua ntfy.sh (topic: vnpt_scraper_trigger_b8f2d9a74c1e9x3q)...")
+        while True:
+            try:
+                # Dùng long polling hoặc stream tùy ntfy.sh
+                resp = requests.get("https://ntfy.sh/vnpt_scraper_trigger_b8f2d9a74c1e9x3q/json", stream=True, timeout=60)
+                for line in resp.iter_lines():
+                    if line:
+                        data = json.loads(line)
+                        if data.get('event') == 'message':
+                            msg = data.get('message', '').strip()
+                            logging.info(f"Nhận được tín hiệu từ Web: {msg}")
+                            if msg == "RUN_KPI":
+                                logging.info("Thực thi lấy Báo cáo KPI theo yêu cầu từ Web...")
+                                perform_scraping()
+                            elif msg == "RUN_SM1":
+                                logging.info("Thực thi lấy Báo cáo Hỏng Lặp SM1 theo yêu cầu từ Web...")
+                                run_download_sm1()
+            except Exception as e:
+                logging.error(f"Lỗi kết nối ntfy listener: {e}")
+                time.sleep(5)
+    
+    t = threading.Thread(target=listener, daemon=True)
+    t.start()
+
 if __name__ == "__main__":
     from database import init_db
     init_db()
     
-    schedule.every().day.at("10:00").do(job)
-    schedule.every().day.at("06:00").do(sync_overdue_bhsc)
-    schedule.every().day.at("06:05").do(sync_overdue_pttb)
-    schedule.every().day.at("06:15").do(run_download_sm1)
+    # Lắng nghe tín hiệu từ Web
+    listen_for_triggers()
     
-    logging.info("Hệ thống đã khởi động. Đang chạy thử nghiệm ngay bây giờ...")
-    job()
-    sync_overdue_bhsc()
-    sync_overdue_pttb()
-    # run_download_sm1() # Tạm thời không tự chạy SM1 khi khởi động để tránh spam OTP
+    # Sửa lịch báo cáo sang 8:00
+    schedule.every().day.at("08:00").do(job)
+    schedule.every().day.at("08:05").do(sync_overdue_bhsc)
+    schedule.every().day.at("08:10").do(sync_overdue_pttb)
+    schedule.every().day.at("08:15").do(run_download_sm1)
+    
+    logging.info("Hệ thống đã khởi động.")
+    # Tạm thời tắt tự chạy khi khởi động để tránh spam
+    # job()
+    # sync_overdue_bhsc()
+    # sync_overdue_pttb()
     
     while True:
         schedule.run_pending()
-        time.sleep(60)
+        time.sleep(10)
