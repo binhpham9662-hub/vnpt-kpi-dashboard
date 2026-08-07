@@ -396,6 +396,19 @@ def process_repeated_tickets_excel(file_path, date_str):
             
             latest_df = repeated_df.groupby('MA_TB', as_index=False).first()
             
+            # Load Zalo mapping once
+            zalo_account_map = {}
+            try:
+                import os
+                ZALO_PATH = r"H:\vnpt_report\zalo.xlsx"
+                if os.path.exists(ZALO_PATH):
+                    zalo_df = pd.read_excel(ZALO_PATH)
+                    if 'Account' in zalo_df.columns and 'MA_NV' in zalo_df.columns:
+                        zalo_df['Account'] = zalo_df['Account'].astype(str).str.strip().str.upper()
+                        zalo_account_map = dict(zip(zalo_df['Account'], zalo_df['MA_NV']))
+            except Exception as e:
+                logging.error(f"Lỗi đọc zalo.xlsx: {e}")
+            
             tickets = {}
             for _, row in latest_df.iterrows():
                 ma_tb = str(row.get('MA_TB', ''))
@@ -406,9 +419,24 @@ def process_repeated_tickets_excel(file_path, date_str):
                 
                 gio_ton = f"{count} lần báo hỏng (Gần nhất: {ngay_bao_hong})"
                 
-                # Nếu file Excel không có cột tên nhân viên, ta tạm để "Không xác định"
-                nvkt = str(row.get('TEN_NV', 'Không xác định'))
-                if 'NGUOI_XU_LY' in row: nvkt = str(row['NGUOI_XU_LY'])
+                # Extract NVKT from TEN_KV if available
+                # Example TEN_KV: DAH-MLH-CHUNGNT1(Mê Linh: Hạ Lôi) -> CHUNGNT1
+                nvkt = "Không xác định"
+                ten_kv = str(row.get('TEN_KV', ''))
+                if ten_kv and '(' in ten_kv:
+                    prefix = ten_kv.split('(')[0]
+                    parts = prefix.split('-')
+                    if len(parts) > 0:
+                        account = parts[-1].strip().upper()
+                        if account in zalo_account_map:
+                            nvkt = str(zalo_account_map[account])
+                        else:
+                            nvkt = account # Fallback to account name if not found in zalo
+                
+                # If still unknown and we have TEN_NV or NGUOI_XU_LY, use them as fallback
+                if nvkt == "Không xác định" or nvkt == "":
+                    nvkt = str(row.get('TEN_NV', 'Không xác định'))
+                    if 'NGUOI_XU_LY' in row: nvkt = str(row['NGUOI_XU_LY'])
                 
                 tickets[ma_tb] = {
                     "Tổ": to_ktdb,
