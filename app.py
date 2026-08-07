@@ -240,6 +240,15 @@ def render_pending_tickets_page(loai_phieu):
         else:
             details_df.index = range(1, len(details_df) + 1)
             st.dataframe(details_df, use_container_width=True)
+    elif loai_phieu == 'BRCD_LAP' and date_filter_type == "Theo Tháng":
+        st.markdown("---")
+        st.markdown("### 📋 Chi tiết toàn bộ thuê bao hỏng lặp trong tháng")
+        details_df = get_pending_details(start_date, end_date, loai_phieu, "CENTER", "")
+        if details_df.empty:
+            st.warning("Không có chi tiết.")
+        else:
+            details_df.index = range(1, len(details_df) + 1)
+            st.dataframe(details_df, use_container_width=True)
 
 def render_main_page():
 

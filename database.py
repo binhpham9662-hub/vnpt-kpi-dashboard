@@ -384,7 +384,7 @@ def get_pending_details(start_date, end_date, loai_phieu, level="NVKT", filter_v
         FROM pending_tickets
         WHERE {base_where}
         GROUP BY Ma_TB, To_KTDB, NVKT
-        ORDER BY MAX(Gio_Ton) DESC
+        ORDER BY To_KTDB ASC, NVKT ASC, Ma_TB ASC
         """
     elif level == "TEAM":
         query = f"""
@@ -392,7 +392,7 @@ def get_pending_details(start_date, end_date, loai_phieu, level="NVKT", filter_v
         FROM pending_tickets
         WHERE {base_where} AND To_KTDB = ?
         GROUP BY Ma_TB, NVKT
-        ORDER BY MAX(Gio_Ton) DESC
+        ORDER BY NVKT ASC, Ma_TB ASC
         """
         params.append(filter_value)
     else: # NVKT
