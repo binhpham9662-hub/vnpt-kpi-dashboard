@@ -340,8 +340,8 @@ if __name__ == "__main__":
     init_db()
     
     schedule.every().day.at("10:00").do(job)
-    schedule.every().day.at("23:00").do(sync_overdue_bhsc)
-    schedule.every().day.at("23:05").do(sync_overdue_pttb)
+    schedule.every().day.at("06:00").do(sync_overdue_bhsc)
+    schedule.every().day.at("06:05").do(sync_overdue_pttb)
     
     logging.info("Hệ thống đã khởi động. Đang chạy thử nghiệm ngay bây giờ...")
     job()
