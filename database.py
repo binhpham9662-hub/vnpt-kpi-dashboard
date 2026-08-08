@@ -330,20 +330,30 @@ def get_pending_summary(start_date, end_date, loai_phieu):
     if loai_phieu == "BRCD_LAP":
         # Với Hỏng Lặp, chỉ lấy bản snapshot mới nhất trong khoảng thời gian
         # Nếu chọn theo ngày (start_date == end_date), sẽ lọc thêm theo NGAY_BAO_HONG trong Gio_Ton
-        query = """
-        SELECT To_KTDB, NVKT, COUNT(DISTINCT Ma_TB) as Total_Tickets
-        FROM pending_tickets
-        WHERE Ngay_Bao_Cao = (
-            SELECT MAX(Ngay_Bao_Cao) FROM pending_tickets 
-            WHERE Loai_Phieu = 'BRCD_LAP' AND Ngay_Bao_Cao <= ?
-        ) AND Loai_Phieu = 'BRCD_LAP'
-        """
-        params = [end_date]
         if start_date == end_date:
+            month_prefix = end_date[:7] # e.g. "2026-08"
+            query = """
+            SELECT To_KTDB, NVKT, COUNT(DISTINCT Ma_TB) as Total_Tickets
+            FROM pending_tickets
+            WHERE Ngay_Bao_Cao = (
+                SELECT MAX(Ngay_Bao_Cao) FROM pending_tickets 
+                WHERE Loai_Phieu = 'BRCD_LAP' AND Ngay_Bao_Cao LIKE ?
+            ) AND Loai_Phieu = 'BRCD_LAP'
+            """
             from datetime import datetime
             date_filter = datetime.strptime(start_date, "%Y-%m-%d").strftime("%d/%m/%Y")
             query += " AND Gio_Ton LIKE ?"
-            params.append(f"%{date_filter}%")
+            params = [f"{month_prefix}%", f"%{date_filter}%"]
+        else:
+            query = """
+            SELECT To_KTDB, NVKT, COUNT(DISTINCT Ma_TB) as Total_Tickets
+            FROM pending_tickets
+            WHERE Ngay_Bao_Cao = (
+                SELECT MAX(Ngay_Bao_Cao) FROM pending_tickets 
+                WHERE Loai_Phieu = 'BRCD_LAP' AND Ngay_Bao_Cao <= ?
+            ) AND Loai_Phieu = 'BRCD_LAP'
+            """
+            params = [end_date]
             
         query += """
         GROUP BY To_KTDB, NVKT
@@ -370,13 +380,16 @@ def get_pending_details(start_date, end_date, loai_phieu, level="NVKT", filter_v
     params = [start_date, end_date, loai_phieu]
     
     if loai_phieu == "BRCD_LAP":
-        base_where = "Ngay_Bao_Cao = (SELECT MAX(Ngay_Bao_Cao) FROM pending_tickets WHERE Loai_Phieu = 'BRCD_LAP' AND Ngay_Bao_Cao <= ?) AND Loai_Phieu = 'BRCD_LAP'"
-        params = [end_date]
         if start_date == end_date:
+            month_prefix = end_date[:7] # e.g. "2026-08"
+            base_where = "Ngay_Bao_Cao = (SELECT MAX(Ngay_Bao_Cao) FROM pending_tickets WHERE Loai_Phieu = 'BRCD_LAP' AND Ngay_Bao_Cao LIKE ?) AND Loai_Phieu = 'BRCD_LAP'"
             from datetime import datetime
             date_filter = datetime.strptime(start_date, "%Y-%m-%d").strftime("%d/%m/%Y")
             base_where += " AND Gio_Ton LIKE ?"
-            params.append(f"%{date_filter}%")
+            params = [f"{month_prefix}%", f"%{date_filter}%"]
+        else:
+            base_where = "Ngay_Bao_Cao = (SELECT MAX(Ngay_Bao_Cao) FROM pending_tickets WHERE Loai_Phieu = 'BRCD_LAP' AND Ngay_Bao_Cao <= ?) AND Loai_Phieu = 'BRCD_LAP'"
+            params = [end_date]
             
     if level == "CENTER":
         query = f"""
