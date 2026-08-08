@@ -451,7 +451,7 @@ def process_repeated_tickets_excel(file_path, date_str):
             zalo_account_map = {}
             try:
                 import os
-                ZALO_PATH = r"H:\vnpt_report\zalo.xlsx"
+                ZALO_PATH = r"H:\web-bao-cao\zalo.xlsx"
                 if os.path.exists(ZALO_PATH):
                     zalo_df = pd.read_excel(ZALO_PATH)
                     if 'Account' in zalo_df.columns and 'MA_NV' in zalo_df.columns:
