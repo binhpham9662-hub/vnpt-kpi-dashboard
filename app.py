@@ -196,6 +196,8 @@ def render_pending_tickets_page(loai_phieu):
         # Thêm Nhân Viên
         for _, row in to_group.iterrows():
             nv_name = row['NVKT']
+            if isinstance(nv_name, str) and '-' in nv_name:
+                nv_name = nv_name.split('-')[-1].strip()
             nv_tickets = row['Total_Tickets']
             rows.append({
                 "Hiển Thị": f"   │    └── 👤 {nv_name}",
@@ -239,6 +241,10 @@ def render_pending_tickets_page(loai_phieu):
             st.warning("Không có chi tiết.")
         else:
             details_df.index = range(1, len(details_df) + 1)
+            if 'Nhân Viên KT' in details_df.columns:
+                details_df['Nhân Viên KT'] = details_df['Nhân Viên KT'].apply(
+                    lambda x: str(x).split('-')[-1].strip() if isinstance(x, str) and '-' in x else x
+                )
             if loai_phieu == 'BRCD_LAP':
                 import re
                 details_df['Nguyên Nhân'] = details_df['Nguyên Nhân'].apply(lambda x: re.sub(r'(\[Lần \d+ - [^\]]+\])', r'<b>\1</b>', str(x)).replace('\n', '<br>'))
@@ -266,6 +272,10 @@ def render_pending_tickets_page(loai_phieu):
         if details_df.empty:
             st.warning("Không có chi tiết.")
         else:
+            if 'Nhân Viên KT' in details_df.columns:
+                details_df['Nhân Viên KT'] = details_df['Nhân Viên KT'].apply(
+                    lambda x: str(x).split('-')[-1].strip() if isinstance(x, str) and '-' in x else x
+                )
             import re
             details_df['Nguyên Nhân'] = details_df['Nguyên Nhân'].apply(lambda x: re.sub(r'(\[Lần \d+ - [^\]]+\])', r'<b>\1</b>', str(x)).replace('\n', '<br>'))
             html_table = details_df.to_html(escape=False, index=False, classes='styled-table').replace('\n', '')

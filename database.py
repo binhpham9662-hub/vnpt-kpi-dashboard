@@ -506,18 +506,33 @@ def process_repeated_tickets_excel(file_path, date_str):
                     nguyen_nhan_list.append(f"[Lần {idx} - {nbh}] {nn}")
                 nguyen_nhan = "\n".join(nguyen_nhan_list)
                 
-                # Extract NVKT from TEN_KV if available
+                # Lấy tên nhân viên từ cột NGUOI_KHOA (VD: VNPT016712-quannh-Nguyễn Hải Quân, )
                 nvkt = "Không xác định"
-                ten_kv = str(latest_row.get('TEN_KV', ''))
-                if ten_kv and '(' in ten_kv:
-                    prefix = ten_kv.split('(')[0]
-                    parts = prefix.split('-')
-                    if len(parts) > 0:
-                        account = parts[-1].strip().upper()
-                        if account in zalo_account_map:
-                            nvkt = str(zalo_account_map[account])
-                        else:
-                            nvkt = account
+                nguoi_khoa = str(latest_row.get('NGUOI_KHOA', ''))
+                if nguoi_khoa and nguoi_khoa.lower() != 'nan':
+                    nguoi_khoa = nguoi_khoa.strip(' ,')
+                    parts = nguoi_khoa.split('-')
+                    if len(parts) >= 3:
+                        ten_nv = parts[-1].strip()
+                        nvkt = ten_nv
+                    elif len(parts) == 2:
+                        ten_nv = parts[-1].strip()
+                        nvkt = ten_nv
+                    else:
+                        nvkt = nguoi_khoa
+                
+                # Extract NVKT from TEN_KV if NGUOI_KHOA is empty
+                if nvkt == "Không xác định" or nvkt == "":
+                    ten_kv = str(latest_row.get('TEN_KV', ''))
+                    if ten_kv and '(' in ten_kv:
+                        prefix = ten_kv.split('(')[0]
+                        parts = prefix.split('-')
+                        if len(parts) > 0:
+                            account = parts[-1].strip().upper()
+                            if account in zalo_account_map:
+                                nvkt = str(zalo_account_map[account])
+                            else:
+                                nvkt = account
                 
                 # If still unknown and we have TEN_NV or NGUOI_XU_LY, use them as fallback
                 if nvkt == "Không xác định" or nvkt == "":
