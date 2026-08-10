@@ -324,7 +324,32 @@ def save_pending_tickets(date_str, loai_phieu, tickets_dict):
     conn.commit()
     conn.close()
 
+def sync_pttb_from_json():
+    import json
+    import os
+    file_path = r'H:\vnpt_report\daily_overdue_pttb.json'
+    if not os.path.exists(file_path): return
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except: return
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    for date_str, tickets in data.items():
+        c.execute("SELECT COUNT(*) FROM pending_tickets WHERE Ngay_Bao_Cao=? AND Loai_Phieu='PTTB'", (date_str,))
+        if c.fetchone()[0] == 0:
+            for ma_tb, t_info in tickets.items():
+                c.execute("""
+                    INSERT INTO pending_tickets 
+                    (Ngay_Bao_Cao, Loai_Phieu, Ma_TB, To_KTDB, NVKT, Gio_Ton, Ly_Do_Ton)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (date_str, 'PTTB', ma_tb, t_info.get('Tổ', ''), t_info.get('NVKT', ''), float(t_info.get('GIO_TON', 0) or 0), t_info.get('LY_DO_TON', '')))
+    conn.commit()
+    conn.close()
+
 def get_pending_summary(start_date, end_date, loai_phieu):
+    if loai_phieu == "PTTB":
+        sync_pttb_from_json()
     conn = sqlite3.connect(DB_PATH)
     
     if loai_phieu == "BRCD_LAP":
@@ -374,6 +399,8 @@ def get_pending_summary(start_date, end_date, loai_phieu):
     return df
 
 def get_pending_details(start_date, end_date, loai_phieu, level="NVKT", filter_value=""):
+    if loai_phieu == "PTTB":
+        sync_pttb_from_json()
     conn = sqlite3.connect(DB_PATH)
     
     base_where = "Ngay_Bao_Cao >= ? AND Ngay_Bao_Cao <= ? AND Loai_Phieu = ?"
