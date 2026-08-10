@@ -203,7 +203,7 @@ def render_pending_tickets_page(loai_phieu):
                 "Hiển Thị": f"   │    └── 👤 {nv_name}",
                 "Số Lượng Tồn": nv_tickets,
                 "_Level": "NVKT",
-                "_Value": nv_name
+                "_Value": row['NVKT']
             })
             
     hierarchy_df = pd.DataFrame(rows)
