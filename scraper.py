@@ -530,6 +530,10 @@ def listen_for_triggers():
                 logging.info("Thực thi lấy Báo cáo KPI theo yêu cầu từ Web...")
                 try:
                     perform_scraping()
+                    import subprocess
+                    bat_path = os.path.join(os.path.dirname(__file__), "sync_to_web.bat")
+                    if os.path.exists(bat_path):
+                        subprocess.run([bat_path], check=True, shell=True)
                 except Exception as e:
                     logging.error(f"Lỗi khi chạy KPI: {e}")
             elif msg == "RUN_SM1":
