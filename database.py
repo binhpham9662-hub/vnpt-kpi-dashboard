@@ -513,11 +513,13 @@ def process_repeated_tickets_excel(file_path, date_str):
                     nguoi_khoa = nguoi_khoa.strip(' ,')
                     parts = nguoi_khoa.split('-')
                     if len(parts) >= 3:
+                        ma_nv = parts[0].strip()
                         ten_nv = parts[-1].strip()
-                        nvkt = ten_nv
+                        nvkt = f"{ma_nv}-{ten_nv}"
                     elif len(parts) == 2:
+                        ma_nv = parts[0].strip()
                         ten_nv = parts[-1].strip()
-                        nvkt = ten_nv
+                        nvkt = f"{ma_nv}-{ten_nv}"
                     else:
                         nvkt = nguoi_khoa
                 
