@@ -1,7 +1,10 @@
-import sqlite3
-conn = sqlite3.connect('kpi_history.db')
-c = conn.cursor()
-c.execute("SELECT Ngay_Bao_Cao, COUNT(*) FROM pending_tickets WHERE Loai_Phieu='PTTB' GROUP BY Ngay_Bao_Cao")
-for row in c.fetchall():
-    print(row)
-conn.close()
+with open(r'H:\web-bao-cao\scraper.py', 'r', encoding='utf-8') as f:
+    with open('H:\\web-bao-cao\\sync_pttb.txt', 'w', encoding='utf-8') as out:
+        in_func = False
+        for line in f:
+            if 'def sync_overdue_pttb' in line:
+                in_func = True
+            if in_func:
+                out.write(line)
+                if 'push_to_github' in line:
+                    break
