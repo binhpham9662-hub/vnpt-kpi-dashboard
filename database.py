@@ -358,7 +358,7 @@ def get_pending_summary(start_date, end_date, loai_phieu):
         if start_date == end_date:
             month_prefix = end_date[:7] # e.g. "2026-08"
             query = """
-            SELECT To_KTDB, NVKT, COUNT(DISTINCT Ma_TB) as Total_Tickets
+            SELECT To_KTDB, NVKT, COUNT(DISTINCT Ma_TB) as Total_Tickets, SUM(CASE WHEN Ly_Do_Ton LIKE '%chưa nhập lý do tồn%' OR Ly_Do_Ton IS NULL OR Ly_Do_Ton = '' THEN 1 ELSE 0 END) as No_Reason_Tickets
             FROM pending_tickets
             WHERE Ngay_Bao_Cao = (
                 SELECT MAX(Ngay_Bao_Cao) FROM pending_tickets 
@@ -371,7 +371,7 @@ def get_pending_summary(start_date, end_date, loai_phieu):
             params = [f"{month_prefix}%", f"%{date_filter}%"]
         else:
             query = """
-            SELECT To_KTDB, NVKT, COUNT(DISTINCT Ma_TB) as Total_Tickets
+            SELECT To_KTDB, NVKT, COUNT(DISTINCT Ma_TB) as Total_Tickets, SUM(CASE WHEN Ly_Do_Ton LIKE '%chưa nhập lý do tồn%' OR Ly_Do_Ton IS NULL OR Ly_Do_Ton = '' THEN 1 ELSE 0 END) as No_Reason_Tickets
             FROM pending_tickets
             WHERE Ngay_Bao_Cao = (
                 SELECT MAX(Ngay_Bao_Cao) FROM pending_tickets 
@@ -386,7 +386,7 @@ def get_pending_summary(start_date, end_date, loai_phieu):
         """
     else:
         query = """
-        SELECT To_KTDB, NVKT, COUNT(DISTINCT Ma_TB) as Total_Tickets
+        SELECT To_KTDB, NVKT, COUNT(DISTINCT Ma_TB) as Total_Tickets, SUM(CASE WHEN Ly_Do_Ton LIKE '%chưa nhập lý do tồn%' OR Ly_Do_Ton IS NULL OR Ly_Do_Ton = '' THEN 1 ELSE 0 END) as No_Reason_Tickets
         FROM pending_tickets
         WHERE Ngay_Bao_Cao >= ? AND Ngay_Bao_Cao <= ? AND Loai_Phieu = ?
         GROUP BY To_KTDB, NVKT

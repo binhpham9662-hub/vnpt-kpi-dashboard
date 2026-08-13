@@ -316,22 +316,10 @@ def sync_overdue_bhsc():
 
 def sync_overdue_pttb():
     logging.info("Bắt đầu đồng bộ phiếu tồn PTTB...")
-    file_path = r"H:\vnpt_report\daily_overdue_pttb.json"
-    if not os.path.exists(file_path):
-        logging.error(f"Không tìm thấy file {file_path}")
-        return
+    from database import sync_pttb_from_json
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        if not data: return
-        today_str = datetime.now().strftime('%Y-%m-%d')
-        if today_str in data:
-            target_date = today_str
-        else:
-            target_date = list(data.keys())[-1]
-            
-        save_pending_tickets(target_date, "PTTB", data[target_date])
-        logging.info(f"Đã đồng bộ phiếu tồn PTTB cho ngày {target_date}")
+        sync_pttb_from_json()
+        logging.info("Đã đồng bộ phiếu tồn PTTB thành công.")
     except Exception as e:
         logging.error(f"Lỗi khi đồng bộ PTTB: {e}")
 

@@ -176,9 +176,11 @@ def render_pending_tickets_page(loai_phieu):
     
     # Tính tổng Trung tâm
     total_center = summary_df['Total_Tickets'].sum()
+    total_center_no_reason = int(summary_df['No_Reason_Tickets'].sum()) if 'No_Reason_Tickets' in summary_df.columns else 0
     rows.append({
         "Hiển Thị": "🏢 Trung tâm Viễn thông Đông Anh",
         "Số Lượng Tồn": total_center,
+        "Chưa Có Lý Do": total_center_no_reason,
         "_Level": "CENTER",
         "_Value": ""
     })
@@ -186,9 +188,11 @@ def render_pending_tickets_page(loai_phieu):
     # Nhóm theo Tổ
     for to_name, to_group in summary_df.groupby("To_KTDB"):
         total_to = to_group['Total_Tickets'].sum()
+        total_to_no_reason = int(to_group['No_Reason_Tickets'].sum()) if 'No_Reason_Tickets' in to_group.columns else 0
         rows.append({
             "Hiển Thị": f"   ├── 👥 {to_name}",
             "Số Lượng Tồn": total_to,
+            "Chưa Có Lý Do": total_to_no_reason,
             "_Level": "TEAM",
             "_Value": to_name
         })
@@ -199,9 +203,11 @@ def render_pending_tickets_page(loai_phieu):
             if isinstance(nv_name, str) and '-' in nv_name:
                 nv_name = nv_name.split('-')[-1].strip()
             nv_tickets = row['Total_Tickets']
+            nv_no_reason = int(row['No_Reason_Tickets']) if 'No_Reason_Tickets' in row else 0
             rows.append({
                 "Hiển Thị": f"   │    └── 👤 {nv_name}",
                 "Số Lượng Tồn": nv_tickets,
+                "Chưa Có Lý Do": nv_no_reason,
                 "_Level": "NVKT",
                 "_Value": row['NVKT']
             })
@@ -210,7 +216,10 @@ def render_pending_tickets_page(loai_phieu):
     qty_col_name = "Số Lượng Thuê Bao" if loai_phieu == 'BRCD_LAP' else "Số Lượng Tồn"
     hierarchy_df = hierarchy_df.rename(columns={"Số Lượng Tồn": qty_col_name})
     
-    display_df = hierarchy_df[["Hiển Thị", qty_col_name]].copy()
+    display_cols = ["Hiển Thị", qty_col_name]
+    if loai_phieu in ['PTTB', 'BHSC'] and 'Chưa Có Lý Do' in hierarchy_df.columns:
+        display_cols.append('Chưa Có Lý Do')
+    display_df = hierarchy_df[display_cols].copy()
     display_df.index = range(1, len(display_df) + 1)
     
     st.markdown("### 👥 Tổng hợp theo cấp độ")
