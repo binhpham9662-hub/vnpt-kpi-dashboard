@@ -9,7 +9,7 @@ import json
 import logging
 from database import process_and_insert_excel, save_pending_tickets
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', handlers=[logging.FileHandler('scraper_run.log', encoding='utf-8')])
 
 TOKEN = "8685247292:AAEsGy0S2JT0ek0yQyiDesp3rTTQeCKv6mQ"
 CHAT_ID = "763228783"
