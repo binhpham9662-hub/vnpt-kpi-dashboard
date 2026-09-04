@@ -438,6 +438,7 @@ def render_team_table(metric_type):
             'Chỉ tiêu': 'Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCĐ đúng quy định không tính hẹn',
             'SM3': brcd_agg['Tong_SM3'],
             'SM4': brcd_agg['Tong_SM4'],
+            'Số lượng phiếu không đạt': brcd_agg['Tong_SM4'] - brcd_agg['Tong_SM3'],
             'Số phiếu không đạt tăng lên so với hôm qua': brcd_agg['Tang_Khong_Dat_BRCD'].apply(lambda x: f"{x:+.0f}"),
             'Tỷ lệ đạt': brcd_agg['Ty_Le_Dat'].apply(lambda x: f"{x:.2f}%")
         })
@@ -637,6 +638,7 @@ def render_team_detail():
             'Đơn vị': team_df['Đơn vị'],
             'SM3': team_df['SM3'],
             'SM4': team_df['SM4'],
+            'Số lượng phiếu không đạt': team_df['SM4'] - team_df['SM3'],
             'Số phiếu không đạt tăng lên so với hôm qua': team_df['Tang_Khong_Dat_BRCD'].apply(lambda x: f"=(SM4-SM3)hôm nay - (SM4-SM3)hôm qua" if pd.isna(x) else f"{x:+.0f}"),
             'Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCĐ đúng quy định không tính hẹn': team_df['Ty_Le_BRCD'].apply(lambda x: f"{x*100:.2f}%")
         })
