@@ -499,11 +499,12 @@ def render_team_table(metric_type):
         valid_individuals = df[(df['Ten_NV'].str.strip() != '') & (~df['Ma_NV'].str.contains('(?i)trung tâm|đông anh', na=False))]
         
         if metric_type == 'brcd':
-            st.markdown("**Top 5 cá nhân có Tỷ lệ thấp nhất**")
-            worst_5 = valid_individuals[valid_individuals['SM4'] > 0].sort_values('Ty_Le_BRCD', ascending=True).head(5)
+            st.markdown("**Top 10 cá nhân có số lượng phiếu không đạt nhiều nhất**")
+            valid_with_diff = valid_individuals.assign(So_Phieu_Khong_Dat=valid_individuals['SM4'] - valid_individuals['SM3'])
+            worst_10 = valid_with_diff[valid_with_diff['So_Phieu_Khong_Dat'] > 0].sort_values('So_Phieu_Khong_Dat', ascending=False).head(10)
             worst_df = pd.DataFrame({
-                'Nhân viên': worst_5['Ten_NV'] + ' (' + worst_5['To_KTDB'] + ')',
-                'Tỷ lệ': worst_5['Ty_Le_BRCD'].apply(lambda x: f"{x*100:.2f}%")
+                'Nhân viên': worst_10['Ten_NV'] + ' (' + worst_10['To_KTDB'] + ')',
+                'Số lượng phiếu không đạt': worst_10['So_Phieu_Khong_Dat']
             })
             st.dataframe(worst_df, use_container_width=True, hide_index=True)
         elif metric_type == 'clcd':
