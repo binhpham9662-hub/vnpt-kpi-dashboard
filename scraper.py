@@ -723,7 +723,7 @@ def run_download_ttht():
             page.wait_for_load_state("networkidle")
             page.wait_for_timeout(2000)
             
-        page.goto(target_url, timeout=60000)
+        page.goto("https://baocao.hanoi.vnpt.vn/report/report-info?id=538247&menu_id=538272", timeout=60000)
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(3000)
         
@@ -762,20 +762,6 @@ def run_download_ttht():
             logging.error(f"Lỗi nhập ngày: {e}")
 
         page.wait_for_timeout(1000)
-
-        logging.info("Chọn Loại phiếu...")
-        try:
-            dropdown = page.locator('ng-select').filter(has_text='HTTT').first
-            dropdown.click(timeout=5000)
-            page.wait_for_timeout(1000)
-            
-            page.keyboard.type("TTHT xử lý")
-            page.wait_for_timeout(1000)
-            
-            page.keyboard.press("Enter")
-            page.wait_for_timeout(500)
-        except Exception as e:
-            logging.error(f"Lỗi chọn Loại phiếu: {e}")
 
         page.wait_for_timeout(1000)
 
