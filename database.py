@@ -579,6 +579,8 @@ def process_sm4_excel(file_path, date_str):
             
         nvkt_mapping = {}
         tickets = {}
+        total_file_sm3 = 0
+        total_file_sm4 = 0
         
         for idx, row in df.iterrows():
             ma_tb = str(row.get('MA_TB', ''))
@@ -626,6 +628,10 @@ def process_sm4_excel(file_path, date_str):
                 
             dat_ko_hen = row.get('DAT_KO_HEN', 0)
             
+            total_file_sm4 += 1
+            if dat_ko_hen == 1:
+                total_file_sm3 += 1
+            
             if ma_nv_extracted not in nvkt_mapping:
                 nvkt_mapping[ma_nv_extracted] = {'ten': ten_nv_extracted, 'to': to_ktdb, 'sm3': 0, 'sm4': 0}
                 
@@ -661,6 +667,11 @@ def process_sm4_excel(file_path, date_str):
                 Ten_NV=excluded.Ten_NV, To_KTDB=excluded.To_KTDB,
                 SM3=excluded.SM3, SM4=excluded.SM4
             ''', (date_str, ma_nv_extracted, ten_nv_extracted, to_ktdb, thang_du_lieu, sm3, sm4))
+            
+        # Update TOTAL row
+        cursor.execute('''
+            UPDATE kpi_daily SET SM3=?, SM4=? WHERE Ngay_Bao_Cao=? AND Ma_NV='TỔNG'
+        ''', (total_file_sm3, total_file_sm4, date_str))
             
         conn.commit()
         conn.close()
