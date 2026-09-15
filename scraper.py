@@ -382,49 +382,6 @@ def run_download_sm1():
             if not current_otp:
                 logging.error("Không nhận được OTP, dừng tiến trình báo cáo.")
                 browser.close()
-
-def run_download_sm4():
-    import glob
-    import os
-    import re
-    DOWNLOAD_DIR = "downloads"
-    logging.info("Dọn dẹp file SM1 cũ...")
-    for f in glob.glob(os.path.join(DOWNLOAD_DIR, "SM4_C11_*.xlsx")):
-        try:
-            os.remove(f)
-        except:
-            pass
-            
-    logging.info("Bắt đầu quá trình tải báo cáo SM4 C11 2026...")
-    
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False, channel="msedge", args=['--start-maximized'])
-        context = browser.new_context(accept_downloads=True, no_viewport=True)
-        page = context.new_page()
-        
-        target_url = "https://baocao.hanoi.vnpt.vn/report/report-info?id=267215&menu_id=276194"
-        page.goto(target_url, timeout=60000)
-        
-        try:
-            page.wait_for_selector("input[placeholder='Tên đăng nhập']", timeout=5000)
-            needs_login = True
-        except:
-            needs_login = False
-            
-        if needs_login:
-            logging.info("Yêu cầu đăng nhập...")
-            page.get_by_placeholder("Tên đăng nhập").fill("binhpt5")
-            page.get_by_placeholder("Mật khẩu").fill("Binh#1991")
-            page.get_by_role("button", name="ĐĂNG NHẬP").click()
-            
-            logging.info("Hệ thống yêu cầu OTP. Đang chờ lấy OTP từ ntfy.sh...")
-            try: bot.send_message(CHAT_ID, "Hệ thống SM4 C11 đang chờ OTP...")
-            except: pass
-            
-            current_otp = get_otp_from_ntfy(180)
-            if not current_otp:
-                logging.error("Không nhận được OTP, dừng tiến trình báo cáo.")
-                browser.close()
                 return
             
             logging.info(f"Đã nhận OTP: {current_otp}")
@@ -543,6 +500,170 @@ def run_download_sm4():
         except Exception as e:
             logging.error(f"Lỗi tải Excel: {e}")
             try: bot.send_message(CHAT_ID, f"❌ Lỗi tải Excel SM1 C12: {str(e)}")
+            except: pass
+
+        browser.close()
+
+def run_download_sm4():
+    import glob
+    import os
+    import re
+    DOWNLOAD_DIR = "downloads"
+    logging.info("Dọn dẹp file SM1 cũ...")
+    for f in glob.glob(os.path.join(DOWNLOAD_DIR, "SM4_C11_*.xlsx")):
+        try:
+            os.remove(f)
+        except:
+            pass
+            
+    logging.info("Bắt đầu quá trình tải báo cáo SM4 C11 2026...")
+    
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=False, channel="msedge", args=['--start-maximized'])
+        context = browser.new_context(accept_downloads=True, no_viewport=True)
+        page = context.new_page()
+        
+        target_url = "https://baocao.hanoi.vnpt.vn/report/report-info?id=267215&menu_id=276194"
+        page.goto(target_url, timeout=60000)
+        
+        try:
+            page.wait_for_selector("input[placeholder='Tên đăng nhập']", timeout=5000)
+            needs_login = True
+        except:
+            needs_login = False
+            
+        if needs_login:
+            logging.info("Yêu cầu đăng nhập...")
+            page.get_by_placeholder("Tên đăng nhập").fill("binhpt5")
+            page.get_by_placeholder("Mật khẩu").fill("Binh#1991")
+            page.get_by_role("button", name="ĐĂNG NHẬP").click()
+            
+            logging.info("Hệ thống yêu cầu OTP. Đang chờ lấy OTP từ ntfy.sh...")
+            try: bot.send_message(CHAT_ID, "Hệ thống SM4 C11 đang chờ OTP...")
+            except: pass
+            
+            current_otp = get_otp_from_ntfy(180)
+            if not current_otp:
+                logging.error("Không nhận được OTP, dừng tiến trình báo cáo.")
+                browser.close()
+                return
+            
+            logging.info(f"Đã nhận OTP: {current_otp}")
+            try:
+                page.wait_for_timeout(2000)
+                page.locator("input:visible").first.fill(current_otp)
+                page.get_by_role("button", name="ĐĂNG NHẬP").click()
+            except Exception as e:
+                logging.error(f"Lỗi nhập OTP: {e}")
+                browser.close()
+                return
+                
+            page.wait_for_load_state("networkidle")
+            page.wait_for_timeout(2000)
+            
+        page.goto(target_url, timeout=60000)
+        page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(3000)
+        
+        logging.info("Chọn Đơn vị...")
+        try:
+            page.locator('ngx-dropdown-treeview button.dropdown-toggle').first.click(timeout=5000)
+            page.wait_for_timeout(1000)
+            page.locator("ngx-dropdown-treeview input[placeholder='Tìm kiếm']").first.fill("TTVT Đông Anh")
+            page.wait_for_timeout(1000)
+            page.get_by_text("TTVT Đông Anh", exact=False).last.click()
+            page.keyboard.press("Escape")
+        except Exception as e:
+            logging.error(f"Lỗi khi chọn Đơn vị: {e}")
+            
+        page.wait_for_timeout(1000)
+
+        start_date, end_date = get_report_dates()
+        logging.info(f"Chọn ngày: {start_date} đến {end_date}")
+        try:
+            inputs = page.locator("input.mat-datepicker-input")
+            if inputs.count() >= 2:
+                inputs.nth(0).click(timeout=5000, force=True)
+                page.wait_for_timeout(1000)
+                inputs.nth(0).click(timeout=5000, force=True)
+                page.wait_for_timeout(500)
+                page.keyboard.press("Control+A")
+                page.keyboard.type(start_date)
+                
+                page.wait_for_timeout(500)
+                page.keyboard.press("Escape")
+                page.mouse.click(10, 10)
+                page.wait_for_timeout(1000)
+            else:
+                logging.warning("Không tìm thấy đủ 2 ô nhập ngày mat-datepicker-input")
+        except Exception as e:
+            logging.error(f"Lỗi nhập ngày: {e}")
+
+        page.wait_for_timeout(1000)
+
+        logging.info("Chọn Loại phiếu...")
+        try:
+            dropdown = page.locator('ng-select').filter(has_text='HTTT').first
+            dropdown.click(timeout=5000)
+            page.wait_for_timeout(1000)
+            
+            page.keyboard.type("SM4 C11 2026")
+            page.wait_for_timeout(1000)
+            
+            page.keyboard.press("Enter")
+            page.wait_for_timeout(500)
+        except Exception as e:
+            logging.error(f"Lỗi chọn Loại phiếu: {e}")
+
+        page.wait_for_timeout(1000)
+
+        try:
+            page.locator("button:has-text('Báo cáo'), a:has-text('Báo cáo')").locator("visible=true").first.click()
+            logging.info("Đã bấm Báo cáo. Đang chờ dữ liệu load (khoảng 10s)...")
+            page.wait_for_timeout(10000)
+        except Exception as e:
+            logging.error(f"Lỗi khi bấm nút Báo cáo: {e}")
+
+        logging.info("Bắt đầu tải Excel...")
+        try:
+            btn_xuat_excel = page.locator("button:has-text('Xuất Excel'), a:has-text('Xuất Excel'), span:has-text('Xuất Excel')").locator("visible=true").first
+            btn_xuat_excel.wait_for(state="visible", timeout=30000)
+            btn_xuat_excel.click()
+            logging.info("Đã bấm Xuất Excel, đợi menu...")
+            
+            page.wait_for_timeout(2000)
+            
+            btn_tat_ca = page.get_by_text("Tất cả dữ liệu", exact=False).locator("visible=true").last
+            btn_tat_ca.wait_for(state="visible", timeout=15000)
+            
+            with page.expect_download(timeout=90000) as download_info:
+                btn_tat_ca.click()
+                
+            download = download_info.value
+            os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+            
+            file_name = f"SM4_C11_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            file_path = os.path.join(DOWNLOAD_DIR, file_name)
+            download.save_as(file_path)
+            logging.info(f"✅ Đã tải thành công file Excel: {file_path}")
+            
+            try: bot.send_message(CHAT_ID, f"✅ Đã tải thành công báo cáo SM4 C11 2026: {file_name}")
+            except: pass
+            
+            from database import process_sm4_excel
+            from datetime import timedelta
+            yesterday_str = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+            process_sm4_excel(file_path, yesterday_str)
+            
+            # Đẩy lên Web ngay sau khi lấy xong
+            import subprocess
+            bat_path = os.path.join(os.path.dirname(__file__), "sync_to_web.bat")
+            if os.path.exists(bat_path):
+                subprocess.run([bat_path], check=True, shell=True)
+                
+        except Exception as e:
+            logging.error(f"Lỗi tải Excel: {e}")
+            try: bot.send_message(CHAT_ID, f"❌ Lỗi tải Excel SM4 C11: {str(e)}")
             except: pass
 
         browser.close()
