@@ -372,7 +372,16 @@ def render_main_page():
     total_sm5 = df['SM5'].sum()
     total_sm6 = df['SM6'].sum()
     
-    ty_le_brcd = (total_sm3 / total_sm4 * 100) if total_sm4 > 0 else 0
+    if 'SM4_Dat_HT' not in df.columns:
+        df['SM4_Dat_HT'] = 0
+        df['SM4_Khong_Dat_HT'] = 0
+    total_sm4_dat_ht = df['SM4_Dat_HT'].sum()
+    total_sm4_khong_dat_ht = df['SM4_Khong_Dat_HT'].sum()
+    
+    tu_so_brcd = total_sm3
+    mau_so_brcd = total_sm4 - total_sm4_dat_ht
+    
+    ty_le_brcd = (tu_so_brcd / mau_so_brcd * 100) if mau_so_brcd > 0 else 0
     ty_le_clcd = (total_sm1 / total_sm2 * 100) if total_sm2 > 0 else 0
     ty_le_brcd_lap = (total_sm5 / total_sm6 * 100) if total_sm6 > 0 else 0
     
@@ -449,18 +458,24 @@ def render_team_table(metric_type):
             
         brcd_agg = df.groupby('To_KTDB').agg(
             Tong_SM3=('SM3', 'sum'), Tong_SM4=('SM4', 'sum'),
+            Tong_SM4_Dat_HT=('SM4_Dat_HT', 'sum'), Tong_SM4_Khong_Dat_HT=('SM4_Khong_Dat_HT', 'sum'),
             Tang_Khong_Dat_BRCD=('Tang_Khong_Dat_BRCD', 'sum')
         ).reset_index()
-        brcd_agg['Ty_Le_Dat'] = (brcd_agg['Tong_SM3'] / brcd_agg['Tong_SM4'] * 100).fillna(0)
+        
+        brcd_agg['Tu_So'] = brcd_agg['Tong_SM3']
+        brcd_agg['Mau_So'] = brcd_agg['Tong_SM4'] - brcd_agg['Tong_SM4_Dat_HT']
+        brcd_agg['Ty_Le_Dat'] = (brcd_agg['Tu_So'] / brcd_agg['Mau_So'] * 100).fillna(0)
         
         display_df = pd.DataFrame({
             'Đơn vị': brcd_agg['To_KTDB'],
             'Chỉ tiêu': 'Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCĐ đúng quy định không tính hẹn',
             'SM3': brcd_agg['Tong_SM3'],
             'SM4': brcd_agg['Tong_SM4'],
+            'SL phiếu đã chuyển HT đạt': brcd_agg['Tong_SM4_Dat_HT'],
+            'SL phiếu đã chuyển HT không đạt': brcd_agg['Tong_SM4_Khong_Dat_HT'],
             'Số lượng phiếu không đạt': brcd_agg['Tong_SM4'] - brcd_agg['Tong_SM3'],
             'Số phiếu không đạt tăng lên so với hôm qua': brcd_agg['Tang_Khong_Dat_BRCD'].apply(lambda x: f"{x:+.0f}"),
-            'Tỷ lệ đạt': brcd_agg['Ty_Le_Dat'].apply(lambda x: f"{x:.2f}%")
+            'Tỷ lệ đạt sau giảm trừ lỗi do hạ tầng': brcd_agg['Ty_Le_Dat'].apply(lambda x: f"{x:.2f}%")
         })
     elif metric_type == 'brcd_lap':
         st.subheader("📊 Bảng Chỉ tiêu C1.2 BRCĐ lặp lại")
@@ -655,13 +670,20 @@ def render_team_detail():
     
     if st.session_state.selected_metric == 'brcd':
         team_df = team_df.sort_values(by=['Tang_Khong_Dat_BRCD', 'SM4'], ascending=[False, False])
+        
+        team_df['Tu_So'] = team_df['SM3']
+        team_df['Mau_So'] = team_df['SM4'] - team_df['SM4_Dat_HT']
+        team_df['Ty_Le_Sau_Giam_Tru'] = (team_df['Tu_So'] / team_df['Mau_So'] * 100).fillna(0)
+        
         display_df = pd.DataFrame({
             'Đơn vị': team_df['Đơn vị'],
             'SM3': team_df['SM3'],
             'SM4': team_df['SM4'],
+            'SL phiếu đã chuyển HT đạt': team_df['SM4_Dat_HT'],
+            'SL phiếu đã chuyển HT không đạt': team_df['SM4_Khong_Dat_HT'],
             'Số lượng phiếu không đạt': team_df['SM4'] - team_df['SM3'],
             'Số phiếu không đạt tăng lên so với hôm qua': team_df['Tang_Khong_Dat_BRCD'].apply(lambda x: f"=(SM4-SM3)hôm nay - (SM4-SM3)hôm qua" if pd.isna(x) else f"{x:+.0f}"),
-            'Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCĐ đúng quy định không tính hẹn': team_df['Ty_Le_BRCD'].apply(lambda x: f"{x*100:.2f}%")
+            'Tỷ lệ đạt sau giảm trừ lỗi do hạ tầng': team_df['Ty_Le_Sau_Giam_Tru'].apply(lambda x: f"{x:.2f}%")
         })
     elif st.session_state.selected_metric == 'brcd_lap':
         team_df = team_df.sort_values(by=['Tang_Khong_Dat_BRCD_Lap', 'SM5'], ascending=[False, False])
@@ -726,11 +748,14 @@ def render_charts_page():
         tt_daily = tt_df.groupby('Ngay_Bao_Cao').agg(
             Tong_SM1=('SM1', 'sum'), Tong_SM2=('SM2', 'sum'),
             Tong_SM3=('SM3', 'sum'), Tong_SM4=('SM4', 'sum'),
-            Tong_SM5=('SM5', 'sum'), Tong_SM6=('SM6', 'sum')
+            Tong_SM5=('SM5', 'sum'), Tong_SM6=('SM6', 'sum'),
+            Tong_SM4_Dat_HT=('SM4_Dat_HT', 'sum'), Tong_SM4_Khong_Dat_HT=('SM4_Khong_Dat_HT', 'sum')
         ).reset_index()
         tt_daily['Ngay_Bao_Cao'] = pd.to_datetime(tt_daily['Ngay_Bao_Cao'])
         
-        tt_daily['brcd'] = (tt_daily['Tong_SM3'] / tt_daily['Tong_SM4'] * 100).fillna(0)
+        tt_daily['Tu_So'] = tt_daily['Tong_SM3']
+        tt_daily['Mau_So'] = tt_daily['Tong_SM4'] - tt_daily['Tong_SM4_Dat_HT']
+        tt_daily['brcd'] = (tt_daily['Tu_So'] / tt_daily['Mau_So'] * 100).fillna(0)
         tt_daily['brcd_lap'] = (tt_daily['Tong_SM5'] / tt_daily['Tong_SM6'] * 100).fillna(0)
         tt_daily['clcd'] = (tt_daily['Tong_SM1'] / tt_daily['Tong_SM2'] * 100).fillna(0)
         
@@ -764,11 +789,14 @@ def render_charts_page():
         to_daily = to_df.groupby(['Ngay_Bao_Cao', 'To_KTDB']).agg(
             Tong_SM1=('SM1', 'sum'), Tong_SM2=('SM2', 'sum'),
             Tong_SM3=('SM3', 'sum'), Tong_SM4=('SM4', 'sum'),
-            Tong_SM5=('SM5', 'sum'), Tong_SM6=('SM6', 'sum')
+            Tong_SM5=('SM5', 'sum'), Tong_SM6=('SM6', 'sum'),
+            Tong_SM4_Dat_HT=('SM4_Dat_HT', 'sum'), Tong_SM4_Khong_Dat_HT=('SM4_Khong_Dat_HT', 'sum')
         ).reset_index()
         to_daily['Ngay_Bao_Cao'] = pd.to_datetime(to_daily['Ngay_Bao_Cao'])
         
-        to_daily['brcd'] = (to_daily['Tong_SM3'] / to_daily['Tong_SM4'] * 100).fillna(0)
+        to_daily['Tu_So'] = to_daily['Tong_SM3']
+        to_daily['Mau_So'] = to_daily['Tong_SM4'] - to_daily['Tong_SM4_Dat_HT']
+        to_daily['brcd'] = (to_daily['Tu_So'] / to_daily['Mau_So'] * 100).fillna(0)
         to_daily['brcd_lap'] = (to_daily['Tong_SM5'] / to_daily['Tong_SM6'] * 100).fillna(0)
         to_daily['clcd'] = (to_daily['Tong_SM1'] / to_daily['Tong_SM2'] * 100).fillna(0)
         
