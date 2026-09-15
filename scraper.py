@@ -382,6 +382,49 @@ def run_download_sm1():
             if not current_otp:
                 logging.error("Không nhận được OTP, dừng tiến trình báo cáo.")
                 browser.close()
+
+def run_download_sm4():
+    import glob
+    import os
+    import re
+    DOWNLOAD_DIR = "downloads"
+    logging.info("Dọn dẹp file SM1 cũ...")
+    for f in glob.glob(os.path.join(DOWNLOAD_DIR, "SM4_C11_*.xlsx")):
+        try:
+            os.remove(f)
+        except:
+            pass
+            
+    logging.info("Bắt đầu quá trình tải báo cáo SM4 C11 2026...")
+    
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=False, channel="msedge", args=['--start-maximized'])
+        context = browser.new_context(accept_downloads=True, no_viewport=True)
+        page = context.new_page()
+        
+        target_url = "https://baocao.hanoi.vnpt.vn/report/report-info?id=267215&menu_id=276194"
+        page.goto(target_url, timeout=60000)
+        
+        try:
+            page.wait_for_selector("input[placeholder='Tên đăng nhập']", timeout=5000)
+            needs_login = True
+        except:
+            needs_login = False
+            
+        if needs_login:
+            logging.info("Yêu cầu đăng nhập...")
+            page.get_by_placeholder("Tên đăng nhập").fill("binhpt5")
+            page.get_by_placeholder("Mật khẩu").fill("Binh#1991")
+            page.get_by_role("button", name="ĐĂNG NHẬP").click()
+            
+            logging.info("Hệ thống yêu cầu OTP. Đang chờ lấy OTP từ ntfy.sh...")
+            try: bot.send_message(CHAT_ID, "Hệ thống SM4 C11 đang chờ OTP...")
+            except: pass
+            
+            current_otp = get_otp_from_ntfy(180)
+            if not current_otp:
+                logging.error("Không nhận được OTP, dừng tiến trình báo cáo.")
+                browser.close()
                 return
             
             logging.info(f"Đã nhận OTP: {current_otp}")
@@ -530,6 +573,12 @@ def listen_for_triggers():
                     run_download_sm1()
                 except Exception as e:
                     logging.error(f"Lỗi khi chạy SM1: {e}")
+            elif msg == "RUN_SM4":
+                logging.info("Thực thi lấy Báo cáo BRCĐ Không tính hẹn SM4 theo yêu cầu từ Web...")
+                try:
+                    run_download_sm4()
+                except Exception as e:
+                    logging.error(f"Lỗi khi chạy SM4: {e}")
             task_queue.task_done()
             
     threading.Thread(target=worker, daemon=True).start()
@@ -545,7 +594,7 @@ def listen_for_triggers():
                         if data.get('event') == 'message':
                             msg = data.get('message', '').strip()
                             logging.info(f"Nhận được tín hiệu từ Web: {msg}")
-                            if msg in ["RUN_KPI", "RUN_SM1"]:
+                            if msg in ["RUN_KPI", "RUN_SM1", "RUN_SM4"]:
                                 task_queue.put(msg)
             except Exception as e:
                 logging.error(f"Lỗi kết nối ntfy listener: {e}")
@@ -565,6 +614,7 @@ if __name__ == "__main__":
     schedule.every().day.at("08:05").do(sync_overdue_bhsc)
     schedule.every().day.at("08:10").do(sync_overdue_pttb)
     schedule.every().day.at("08:15").do(run_download_sm1)
+    schedule.every().day.at("08:20").do(run_download_sm4)
     
     logging.info("Hệ thống đã khởi động.")
     # Tạm thời tắt tự chạy khi khởi động để tránh spam

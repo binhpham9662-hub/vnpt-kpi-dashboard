@@ -143,7 +143,7 @@ st.markdown("### 📅 Bộ Lọc Thời Gian")
 
 yesterday = datetime.now() - timedelta(days=1)
 
-if st.session_state.page in ['pending_bhsc', 'pending_pttb', 'pending_brcd_lap']:
+if st.session_state.page in ['pending_bhsc', 'pending_pttb', 'pending_brcd_lap', 'pending_brcd_khong_dat']:
     import calendar
     col_filter_type, col_date = st.columns([1, 3])
     with col_filter_type:
@@ -193,7 +193,7 @@ except Exception as e:
     st.error(f"Lỗi truy xuất cơ sở dữ liệu: {e}")
     st.stop()
 
-if df.empty and st.session_state.page not in ['pending_bhsc', 'pending_pttb', 'pending_brcd_lap']:
+if df.empty and st.session_state.page not in ['pending_bhsc', 'pending_pttb', 'pending_brcd_lap', 'pending_brcd_khong_dat']:
     st.info(f"Chưa có dữ liệu KPI cho ngày {date_str}. Vui lòng kiểm tra lại quá trình tải dữ liệu hoặc chọn ngày khác.")
     st.stop()
 
@@ -427,6 +427,10 @@ def render_team_table(metric_type):
     
     if metric_type == 'brcd':
         st.subheader("📊 Bảng Chỉ tiêu C1.1 BRCĐ không tính hẹn")
+        if st.button("👁 Xem Bảng Phân Cấp Chi Tiết Phiếu Không Đạt", use_container_width=True, type="primary"):
+            st.session_state.page = 'pending_brcd_khong_dat'
+            st.rerun()
+            
         brcd_agg = df.groupby('To_KTDB').agg(
             Tong_SM3=('SM3', 'sum'), Tong_SM4=('SM4', 'sum'),
             Tang_Khong_Dat_BRCD=('Tang_Khong_Dat_BRCD', 'sum')
@@ -792,6 +796,8 @@ elif st.session_state.page == 'pending_pttb':
     render_pending_tickets_page('PTTB')
 elif st.session_state.page == 'pending_brcd_lap':
     render_pending_tickets_page('BRCD_LAP')
+elif st.session_state.page == 'pending_brcd_khong_dat':
+    render_pending_tickets_page('BRCD_KHONG_DAT')
 
 st.markdown("---")
 st.caption("Thiết kế và phát triển dựa trên Streamlit & Pandas. Tự động lấy dữ liệu bằng Playwright.")
