@@ -487,9 +487,8 @@ def run_download_sm1():
             except: pass
             
             from database import process_repeated_tickets_excel
-            from datetime import timedelta
-            yesterday_str = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-            process_repeated_tickets_excel(file_path, yesterday_str)
+            today_str = datetime.now().strftime("%Y-%m-%d")
+            process_repeated_tickets_excel(file_path, today_str)
             
             # Đẩy lên Web ngay sau khi lấy xong
             import subprocess
@@ -651,9 +650,8 @@ def run_download_sm4():
             except: pass
             
             from database import process_sm4_excel
-            from datetime import timedelta
-            yesterday_str = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-            process_sm4_excel(file_path, yesterday_str)
+            today_str = datetime.now().strftime("%Y-%m-%d")
+            process_sm4_excel(file_path, today_str)
             
             # Đẩy lên Web ngay sau khi lấy xong
             import subprocess
