@@ -688,3 +688,8 @@ def process_sm4_excel(file_path, date_str):
 if __name__ == '__main__':
     init_db()
     print("Database initialized.")
+
+
+def process_ttht_excel(file_path, date_str):
+    import logging
+    logging.info(f'Dummy process_ttht_excel called for {file_path} on {date_str}')
