@@ -138,6 +138,14 @@ with st.sidebar:
             except Exception as e:
                 st.error(f"Lỗi gửi lệnh: {e}")
 
+        if st.button("🚀 Lấy Báo Cáo Chi Tiết BRCĐ Không Đạt", use_container_width=True):
+            try:
+                import requests
+                requests.post("https://ntfy.sh/vnpt_scraper_trigger_b8f2d9a74c1e9x3q", data="RUN_SM4".encode(encoding='utf-8'))
+                st.toast("✅ Đã gửi lệnh lấy Báo cáo BRCĐ Không Đạt xuống máy tính!")
+            except Exception as e:
+                st.error(f"Lỗi gửi lệnh: {e}")
+
 # Date Selection
 st.markdown("### 📅 Bộ Lọc Thời Gian")
 
