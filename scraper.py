@@ -890,6 +890,7 @@ if __name__ == "__main__":
     schedule.every().day.at("08:10").do(sync_overdue_pttb)
     schedule.every().day.at("08:15").do(run_download_sm1)
     schedule.every().day.at("08:20").do(run_download_sm4)
+    schedule.every().day.at("08:25").do(run_download_ttht)
     
     logging.info("Hệ thống đã khởi động.")
     # Tạm thời tắt tự chạy khi khởi động để tránh spam
