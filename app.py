@@ -2,11 +2,21 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 from database import get_kpi_for_date, init_db, get_pending_summary, get_pending_details
+import importlib
+import database
+importlib.reload(database)
 import os
 
 # Initialize DB on first run if not exists
 if not os.path.exists('kpi_history.db'):
     init_db()
+
+# Auto patch missing columns on startup
+try:
+    import patch_db
+    patch_db.patch_database()
+except Exception as e:
+    pass
 
 st.set_page_config(
     page_title="HR KPI Dashboard",
