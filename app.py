@@ -547,11 +547,15 @@ def render_team_table(metric_type):
         
         if metric_type == 'brcd':
             st.markdown("**Top 10 cá nhân có số lượng phiếu không đạt nhiều nhất**")
-            valid_with_diff = valid_individuals.assign(So_Phieu_Khong_Dat=valid_individuals['SM4'] - valid_individuals['SM3'])
+            valid_with_diff = valid_individuals.assign(
+                So_Phieu_Khong_Dat=valid_individuals['SM4'] - valid_individuals['SM3'],
+                Phieu_KDat_Loi_HT=valid_individuals['SM4'] - valid_individuals['SM4_Tru']
+            )
             worst_10 = valid_with_diff[valid_with_diff['So_Phieu_Khong_Dat'] > 0].sort_values('So_Phieu_Khong_Dat', ascending=False).head(10)
             worst_df = pd.DataFrame({
                 'Nhân viên': worst_10['Ten_NV'] + ' (' + worst_10['To_KTDB'] + ')',
-                'Số lượng phiếu không đạt': worst_10['So_Phieu_Khong_Dat']
+                'Số lượng phiếu không đạt': worst_10['So_Phieu_Khong_Dat'].astype(int),
+                'Số phiếu K.Đạt đã chuyển HT (đạt)': worst_10['Phieu_KDat_Loi_HT'].fillna(0).astype(int)
             })
             st.dataframe(worst_df, use_container_width=True, hide_index=True)
         elif metric_type == 'clcd':
