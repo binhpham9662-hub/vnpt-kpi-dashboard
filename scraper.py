@@ -621,8 +621,10 @@ def run_download_sm4():
             
             from database import process_sm4_excel
             today_str = datetime.now().strftime("%Y-%m-%d")
-            process_sm4_excel(file_path, today_str)
-            
+            report_path = process_sm4_excel(file_path, today_str)
+            if report_path and os.path.exists(report_path):
+                try: bot.send_document(CHAT_ID, open(report_path, 'rb'), caption=f"📊 Báo cáo tỷ lệ SM4 sau giảm trừ lỗi Hạ tầng ngày {today_str}")
+                except: pass
             # Đẩy lên Web ngay sau khi lấy xong
             import subprocess
             bat_path = os.path.join(os.path.dirname(__file__), "sync_to_web.bat")
