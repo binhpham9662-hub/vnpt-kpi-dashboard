@@ -478,7 +478,6 @@ def render_team_table(metric_type):
         
         display_df = pd.DataFrame({
             'Đơn vị': brcd_agg['To_KTDB'],
-            'Chỉ tiêu': 'Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCĐ đúng quy định không tính hẹn',
             'SM3': brcd_agg['Tong_SM3'],
             'SM4': brcd_agg['Tong_SM4'],
             'SL phiếu đã chuyển HT đạt': brcd_agg['Tong_HT_Dat'],
@@ -503,7 +502,6 @@ def render_team_table(metric_type):
         
         display_df = pd.DataFrame({
             'Đơn vị': brcd_lap_agg['To_KTDB'],
-            'Chỉ tiêu': 'Tỷ lệ thuê bao báo hỏng dịch vụ BRCĐ lặp lại',
             'SM1': brcd_lap_agg['Tong_SM5'],
             'SM2': brcd_lap_agg['Tong_SM6'],
             'Số phiếu lặp tăng lên so với hôm qua': brcd_lap_agg['Tang_Khong_Dat_BRCD_Lap'].apply(lambda x: f"{x:+.0f}"),
@@ -519,7 +517,6 @@ def render_team_table(metric_type):
         
         display_df = pd.DataFrame({
             'Đơn vị': clcd_agg['To_KTDB'],
-            'Chỉ tiêu': 'Tỷ lệ sửa chữa phiếu chất lượng chủ động dịch vụ FiberVNN, MyTV đạt yêu cầu',
             'SM1': clcd_agg['Tong_SM1'],
             'SM2': clcd_agg['Tong_SM2'],
             'Số phiếu không đạt tăng lên so với hôm qua': clcd_agg['Tang_Khong_Dat_CLCD'].apply(lambda x: f"{x:+.0f}"),
