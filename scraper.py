@@ -565,8 +565,17 @@ def run_download_sm4():
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(3000)
         
+        # DUMP DOM for debugging
         try:
-            btn_bao_cao = page.locator("button:has-text('Báo cáo'):visible, a:has-text('Báo cáo'):visible, span:has-text('Báo cáo'):visible").first
+            with open("debug_page.html", "w", encoding="utf-8") as f:
+                f.write(page.content())
+            logging.info("Đã lưu DOM ra file debug_page.html")
+        except Exception as e:
+            logging.error(f"Lỗi lưu DOM: {e}")
+        
+        try:
+            import re
+            btn_bao_cao = page.get_by_role("button", name=re.compile("Báo cáo", re.IGNORECASE)).first
             btn_bao_cao.click()
             logging.info("Đã bấm Báo cáo. Đang chờ dữ liệu load (khoảng 10s)...")
             page.wait_for_timeout(10000)
@@ -584,14 +593,15 @@ def run_download_sm4():
             new_page.wait_for_timeout(3000)
             
             logging.info("Bắt đầu tải Excel từ tab mới...")
-            btn_xuat_excel = new_page.locator("button:has-text('Xuất Excel'):visible, a:has-text('Xuất Excel'):visible, span:has-text('Xuất Excel'):visible").first
+            import re
+            btn_xuat_excel = new_page.get_by_role("button", name=re.compile("Xuất Excel", re.IGNORECASE)).first
             btn_xuat_excel.click()
             logging.info("Đã bấm Xuất Excel, đợi menu...")
             
             new_page.wait_for_timeout(2000)
             
-            btn_tat_ca = new_page.get_by_text("Tất cả dữ liệu", exact=False).last
-            btn_tat_ca.wait_for(state="visible", timeout=15000)
+            # Tìm nút Tất cả dữ liệu đang hiển thị trên màn hình
+            btn_tat_ca = new_page.locator("button:has-text('Tất cả dữ liệu'):visible, a:has-text('Tất cả dữ liệu'):visible, span:has-text('Tất cả dữ liệu'):visible").first
             
             with new_page.expect_download(timeout=90000) as download_info:
                 btn_tat_ca.click()
