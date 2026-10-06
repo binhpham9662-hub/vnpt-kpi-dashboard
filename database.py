@@ -40,6 +40,10 @@ def init_db():
             SM4 REAL,
             SM5 REAL,
             SM6 REAL,
+            SM3_Tru REAL,
+            SM4_Tru REAL,
+            HT_Dat REAL,
+            HT_Khong_Dat REAL,
             PRIMARY KEY (Ngay_Bao_Cao, Ma_NV)
         )
     ''')
@@ -240,7 +244,7 @@ def get_kpi_for_date(target_date_str):
     query = """
     SELECT 
         t.Ma_NV, t.Ten_NV, t.To_KTDB,
-        t.SM1, t.SM2, t.SM3, t.SM4, t.SM5, t.SM6, t.SM4_Dat_HT, t.SM4_Khong_Dat_HT,
+        t.SM1, t.SM2, t.SM3, t.SM4, t.SM5, t.SM6, t.SM3_Tru, t.SM4_Tru, t.HT_Dat, t.HT_Khong_Dat,
         y.SM1 as Y_SM1, y.SM2 as Y_SM2, y.SM3 as Y_SM3, y.SM4 as Y_SM4, y.SM5 as Y_SM5, y.SM6 as Y_SM6,
         d2.SM1 as D2_SM1, d2.SM2 as D2_SM2, d2.SM3 as D2_SM3, d2.SM4 as D2_SM4, d2.SM5 as D2_SM5, d2.SM6 as D2_SM6,
         d3.SM1 as D3_SM1, d3.SM2 as D3_SM2, d3.SM3 as D3_SM3, d3.SM4 as D3_SM4, d3.SM5 as D3_SM5, d3.SM6 as D3_SM6,
@@ -256,7 +260,7 @@ def get_kpi_for_date(target_date_str):
     conn.close()
     
     # Fill NA for SM columns to avoid NoneType errors
-    for col in ['SM1', 'SM2', 'SM3', 'SM4', 'SM5', 'SM6', 'SM4_Dat_HT', 'SM4_Khong_Dat_HT']:
+    for col in ['SM1', 'SM2', 'SM3', 'SM4', 'SM5', 'SM6', 'SM3_Tru', 'SM4_Tru', 'HT_Dat', 'HT_Khong_Dat']:
         df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
     
     # Calculate deltas for BRCĐ (SM3/SM4)
@@ -695,12 +699,14 @@ def process_sm4_excel(file_path, date_str):
             ten_nv_extracted = data['ten']
             to_ktdb = data['to']
             cursor.execute('''
-                INSERT INTO kpi_daily (Ngay_Bao_Cao, Ma_NV, Ten_NV, To_KTDB, Thang_Du_Lieu, SM3, SM4)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO kpi_daily (Ngay_Bao_Cao, Ma_NV, Ten_NV, To_KTDB, Thang_Du_Lieu, SM3, SM4, SM3_Tru, SM4_Tru, HT_Dat, HT_Khong_Dat)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(Ngay_Bao_Cao, Ma_NV) DO UPDATE SET
                 Ten_NV=excluded.Ten_NV, To_KTDB=excluded.To_KTDB,
-                SM3=excluded.SM3, SM4=excluded.SM4
-            ''', (date_str, ma_nv_extracted, ten_nv_extracted, to_ktdb, thang_du_lieu, sm3, sm4))
+                SM3=excluded.SM3, SM4=excluded.SM4,
+                SM3_Tru=excluded.SM3_Tru, SM4_Tru=excluded.SM4_Tru,
+                HT_Dat=excluded.HT_Dat, HT_Khong_Dat=excluded.HT_Khong_Dat
+            ''', (date_str, ma_nv_extracted, ten_nv_extracted, to_ktdb, thang_du_lieu, sm3, sm4, data['sm3_tru'], data['sm4_tru'], data['ht_dat'], data['ht_khong_dat']))
             
         # Update TOTAL row
         cursor.execute('''

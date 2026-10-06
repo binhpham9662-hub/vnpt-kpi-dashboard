@@ -458,24 +458,25 @@ def render_team_table(metric_type):
             
         brcd_agg = df.groupby('To_KTDB').agg(
             Tong_SM3=('SM3', 'sum'), Tong_SM4=('SM4', 'sum'),
-            Tong_SM4_Dat_HT=('SM4_Dat_HT', 'sum'), Tong_SM4_Khong_Dat_HT=('SM4_Khong_Dat_HT', 'sum'),
+            Tong_SM3_Tru=('SM3_Tru', 'sum'), Tong_SM4_Tru=('SM4_Tru', 'sum'),
+            Tong_HT_Dat=('HT_Dat', 'sum'), Tong_HT_Khong_Dat=('HT_Khong_Dat', 'sum'),
             Tang_Khong_Dat_BRCD=('Tang_Khong_Dat_BRCD', 'sum')
         ).reset_index()
         
-        brcd_agg['Tu_So'] = brcd_agg['Tong_SM3']
-        brcd_agg['Mau_So'] = brcd_agg['Tong_SM4'] - brcd_agg['Tong_SM4_Dat_HT']
-        brcd_agg['Ty_Le_Dat'] = (brcd_agg['Tu_So'] / brcd_agg['Mau_So'] * 100).fillna(0)
+        brcd_agg['Ty_Le_Dat_Truoc'] = (brcd_agg['Tong_SM3'] / brcd_agg['Tong_SM4'] * 100).fillna(0)
+        brcd_agg['Ty_Le_Dat_Sau'] = (brcd_agg['Tong_SM3_Tru'] / brcd_agg['Tong_SM4_Tru'] * 100).fillna(0)
         
         display_df = pd.DataFrame({
             'Đơn vị': brcd_agg['To_KTDB'],
             'Chỉ tiêu': 'Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCĐ đúng quy định không tính hẹn',
             'SM3': brcd_agg['Tong_SM3'],
             'SM4': brcd_agg['Tong_SM4'],
-            'SL phiếu đã chuyển HT đạt': brcd_agg['Tong_SM4_Dat_HT'],
-            'SL phiếu đã chuyển HT không đạt': brcd_agg['Tong_SM4_Khong_Dat_HT'],
+            'SL phiếu đã chuyển HT đạt': brcd_agg['Tong_HT_Dat'],
+            'SL phiếu đã chuyển HT không đạt': brcd_agg['Tong_HT_Khong_Dat'],
             'Số lượng phiếu không đạt': brcd_agg['Tong_SM4'] - brcd_agg['Tong_SM3'],
             'Số phiếu không đạt tăng lên so với hôm qua': brcd_agg['Tang_Khong_Dat_BRCD'].apply(lambda x: f"{x:+.0f}"),
-            'Tỷ lệ đạt sau giảm trừ lỗi do hạ tầng': brcd_agg['Ty_Le_Dat'].apply(lambda x: f"{x:.2f}%")
+            'Tỷ lệ trước giảm trừ': brcd_agg['Ty_Le_Dat_Truoc'].apply(lambda x: f"{x:.2f}%"),
+            'Tỷ lệ đạt sau giảm trừ lỗi do hạ tầng': brcd_agg['Ty_Le_Dat_Sau'].apply(lambda x: f"{x:.2f}%")
         })
     elif metric_type == 'brcd_lap':
         st.subheader("📊 Bảng Chỉ tiêu C1.2 BRCĐ lặp lại")
