@@ -483,6 +483,7 @@ def render_team_table(metric_type):
             'SM4': brcd_agg['Tong_SM4'],
             'SL phiếu đã chuyển HT đạt': brcd_agg['Tong_HT_Dat'],
             'SL phiếu đã chuyển HT không đạt': brcd_agg['Tong_HT_Khong_Dat'],
+            'Phiếu K.Đạt lỗi do HT': brcd_agg['Tong_SM4'] - brcd_agg['Tong_SM4_Tru'],
             'Số lượng phiếu không đạt': brcd_agg['Tong_SM4'] - brcd_agg['Tong_SM3'],
             'Số phiếu không đạt tăng lên so với hôm qua': brcd_agg['Tang_Khong_Dat_BRCD'].apply(lambda x: f"{x:+.0f}"),
             'Tỷ lệ trước giảm trừ': brcd_agg['Ty_Le_Dat_Truoc'].apply(lambda x: f"{x:.2f}%"),

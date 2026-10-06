@@ -655,13 +655,13 @@ def process_sm4_excel(file_path, date_str):
                     ht_khong_dat = 1
             
             total_file_sm4 += 1
-            total_file_sm4_tru += (1 if not is_chuyen_ht else 0)
+            total_file_sm4_tru += 1 if not (dat_ko_hen == 0 and ht_dat == 1) else 0
             if is_chuyen_ht:
                 total_file_ht_dat += ht_dat
                 total_file_ht_khong_dat += ht_khong_dat
             if dat_ko_hen == 1:
                 total_file_sm3 += 1
-                total_file_sm3_tru += (1 if not is_chuyen_ht else 0)
+                total_file_sm3_tru += 1
             
             if ma_nv_extracted not in nvkt_mapping:
                 nvkt_mapping[ma_nv_extracted] = {
@@ -676,7 +676,7 @@ def process_sm4_excel(file_path, date_str):
                 }
                 
             nvkt_mapping[ma_nv_extracted]['sm4'] += 1
-            nvkt_mapping[ma_nv_extracted]['sm4_tru'] += (1 if not is_chuyen_ht else 0)
+            nvkt_mapping[ma_nv_extracted]['sm4_tru'] += 1 if not (dat_ko_hen == 0 and ht_dat == 1) else 0
             
             if is_chuyen_ht:
                 nvkt_mapping[ma_nv_extracted]['ht_dat'] += ht_dat
@@ -684,7 +684,7 @@ def process_sm4_excel(file_path, date_str):
                 
             if dat_ko_hen == 1:
                 nvkt_mapping[ma_nv_extracted]['sm3'] += 1
-                nvkt_mapping[ma_nv_extracted]['sm3_tru'] += (1 if not is_chuyen_ht else 0)
+                nvkt_mapping[ma_nv_extracted]['sm3_tru'] += 1
             else:
                 # Add to failed tickets
                 gio_ton = f"Báo hỏng: {ngay_bao_hong}"
