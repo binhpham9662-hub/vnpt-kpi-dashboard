@@ -566,7 +566,8 @@ def run_download_sm4():
         page.wait_for_timeout(3000)
         
         try:
-            page.locator("button:has-text('Báo cáo'), a:has-text('Báo cáo')").locator("visible=true").first.click()
+            btn_bao_cao = page.locator("button:has-text('Báo cáo'):visible, a:has-text('Báo cáo'):visible, span:has-text('Báo cáo'):visible").first
+            btn_bao_cao.click()
             logging.info("Đã bấm Báo cáo. Đang chờ dữ liệu load (khoảng 10s)...")
             page.wait_for_timeout(10000)
         except Exception as e:
@@ -583,14 +584,13 @@ def run_download_sm4():
             new_page.wait_for_timeout(3000)
             
             logging.info("Bắt đầu tải Excel từ tab mới...")
-            btn_xuat_excel = new_page.locator("button:has-text('Xuất Excel'), a:has-text('Xuất Excel'), span:has-text('Xuất Excel')").locator("visible=true").first
-            btn_xuat_excel.wait_for(state="visible", timeout=30000)
+            btn_xuat_excel = new_page.locator("button:has-text('Xuất Excel'):visible, a:has-text('Xuất Excel'):visible, span:has-text('Xuất Excel'):visible").first
             btn_xuat_excel.click()
             logging.info("Đã bấm Xuất Excel, đợi menu...")
             
             new_page.wait_for_timeout(2000)
             
-            btn_tat_ca = new_page.get_by_text("Tất cả dữ liệu", exact=False).locator("visible=true").last
+            btn_tat_ca = new_page.get_by_text("Tất cả dữ liệu", exact=False).last
             btn_tat_ca.wait_for(state="visible", timeout=15000)
             
             with new_page.expect_download(timeout=90000) as download_info:
