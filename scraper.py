@@ -600,11 +600,11 @@ def run_download_sm4():
             
             new_page.wait_for_timeout(2000)
             
-            # Tìm nút Tất cả dữ liệu đang hiển thị trên màn hình
-            btn_tat_ca = new_page.locator("button:has-text('Tất cả dữ liệu'):visible, a:has-text('Tất cả dữ liệu'):visible, span:has-text('Tất cả dữ liệu'):visible").first
+            # Tìm nút Tất cả dữ liệu (thường nằm ở cuối DOM do Angular render)
+            btn_tat_ca = new_page.locator("button.dropdown-item", has_text="Tất cả dữ liệu").last
             
             with new_page.expect_download(timeout=90000) as download_info:
-                btn_tat_ca.click()
+                btn_tat_ca.click(force=True)
                 
             download = download_info.value
             os.makedirs(DOWNLOAD_DIR, exist_ok=True)
