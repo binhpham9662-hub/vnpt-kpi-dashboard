@@ -70,7 +70,7 @@ def extract_nvkt(row, zalo_account_map):
     
     # 1. ALWAYS PRIORITIZE TEN_KV FIRST
     ten_kv = str(row.get('TEN_KV', ''))
-    if ten_kv and '(' in ten_kv:
+    if ten_kv:
         prefix = ten_kv.split('(')[0]
         parts = prefix.split('-')
         if len(parts) > 0:
@@ -627,7 +627,7 @@ def process_sm4_excel(file_path, date_str):
             
             total_file_sm4 += 1
             total_file_sm4_tru += 1 if not (dat_ko_hen == 0 and ht_dat == 1) else 0
-            if is_chuyen_ht:
+            if is_chuyen_ht and dat_ko_hen == 0:
                 total_file_ht_dat += ht_dat
                 total_file_ht_khong_dat += ht_khong_dat
             if dat_ko_hen == 1:
@@ -649,7 +649,7 @@ def process_sm4_excel(file_path, date_str):
             nvkt_mapping[ma_nv_extracted]['sm4'] += 1
             nvkt_mapping[ma_nv_extracted]['sm4_tru'] += 1 if not (dat_ko_hen == 0 and ht_dat == 1) else 0
             
-            if is_chuyen_ht:
+            if is_chuyen_ht and dat_ko_hen == 0:
                 nvkt_mapping[ma_nv_extracted]['ht_dat'] += ht_dat
                 nvkt_mapping[ma_nv_extracted]['ht_khong_dat'] += ht_khong_dat
                 
