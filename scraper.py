@@ -600,8 +600,8 @@ def run_download_sm4():
             
             new_page.wait_for_timeout(2000)
             
-            # Tìm nút Tất cả dữ liệu đang hiển thị thật sự (dùng filter state visible)
-            btn_tat_ca = new_page.locator("button.dropdown-item", has_text="Tất cả dữ liệu").filter(state="visible").first
+            # Sửa lại cú pháp filter của Playwright
+            btn_tat_ca = new_page.locator("button.dropdown-item:visible", has_text="Tất cả dữ liệu").first
             
             with new_page.expect_download(timeout=90000) as download_info:
                 btn_tat_ca.click()
