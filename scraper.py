@@ -600,8 +600,10 @@ def run_download_sm4():
             
             new_page.wait_for_timeout(2000)
             
-            # Sửa lại cú pháp filter của Playwright
-            btn_tat_ca = new_page.locator("button.dropdown-item:visible", has_text="Tất cả dữ liệu").first
+            # Bỏ qua việc tìm kiếm bằng chuỗi ký tự tiếng Việt dễ bị lỗi mã hóa
+            # Menu "Xuất Excel" khi mở ra sẽ có các thẻ mang class .dropdown-item
+            # Phần tử thứ 2 (nth(1)) chính là "2. Tất cả dữ liệu"
+            btn_tat_ca = new_page.locator(".dropdown-item:visible").nth(1)
             
             with new_page.expect_download(timeout=90000) as download_info:
                 btn_tat_ca.click()
