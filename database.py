@@ -499,6 +499,12 @@ def get_pending_details(start_date, end_date, loai_phieu, level="NVKT", filter_v
 
 def process_repeated_tickets_excel(file_path, date_str):
     try:
+        # Reset SM1, SM2 columns to 0 for this date to avoid ghost rows
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute("UPDATE kpi_daily SET SM1=0, SM2=0 WHERE Ngay_Bao_Cao=?", (date_str,))
+        conn.commit()
+        conn.close()
+        
         df = pd.read_excel(file_path)
         
         # Đếm số lần lặp MA_TB
@@ -569,6 +575,12 @@ def process_repeated_tickets_excel(file_path, date_str):
 
 def process_sm4_excel(file_path, date_str):
     try:
+        # Reset SM3, SM4 related columns to 0 for this date to avoid ghost rows from previous scraper runs
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute("UPDATE kpi_daily SET SM3=0, SM4=0, SM3_Tru=0, SM4_Tru=0, HT_Dat=0, HT_Khong_Dat=0 WHERE Ngay_Bao_Cao=?", (date_str,))
+        conn.commit()
+        conn.close()
+        
         df = pd.read_excel(file_path)
         
         # Load Zalo mapping once
