@@ -382,14 +382,14 @@ def render_main_page():
     total_sm5 = df['SM5'].sum()
     total_sm6 = df['SM6'].sum()
     
-    if 'SM4_Dat_HT' not in df.columns:
-        df['SM4_Dat_HT'] = 0
-        df['SM4_Khong_Dat_HT'] = 0
-    total_sm4_dat_ht = df['SM4_Dat_HT'].sum()
-    total_sm4_khong_dat_ht = df['SM4_Khong_Dat_HT'].sum()
+    if 'HT_Dat' not in df.columns:
+        df['HT_Dat'] = 0
+        df['HT_Khong_Dat'] = 0
+    total_HT_Dat = df['HT_Dat'].sum()
+    total_HT_Khong_Dat = df['HT_Khong_Dat'].sum()
     
     tu_so_brcd = total_sm3
-    mau_so_brcd = total_sm4 - total_sm4_dat_ht
+    mau_so_brcd = total_sm4 - total_HT_Dat
     
     ty_le_brcd = (tu_so_brcd / mau_so_brcd * 100) if mau_so_brcd > 0 else 0
     ty_le_clcd = (total_sm1 / total_sm2 * 100) if total_sm2 > 0 else 0
@@ -685,15 +685,15 @@ def render_team_detail():
         team_df = team_df.sort_values(by=['Tang_Khong_Dat_BRCD', 'SM4'], ascending=[False, False])
         
         team_df['Tu_So'] = team_df['SM3']
-        team_df['Mau_So'] = team_df['SM4'] - team_df['SM4_Dat_HT']
+        team_df['Mau_So'] = team_df['SM4'] - team_df['HT_Dat']
         team_df['Ty_Le_Sau_Giam_Tru'] = (team_df['Tu_So'] / team_df['Mau_So'] * 100).fillna(0)
         
         display_df = pd.DataFrame({
             'Đơn vị': team_df['Đơn vị'],
             'SM3': team_df['SM3'],
             'SM4': team_df['SM4'],
-            'SL phiếu đã chuyển HT đạt': team_df['SM4_Dat_HT'],
-            'SL phiếu đã chuyển HT không đạt': team_df['SM4_Khong_Dat_HT'],
+            'SL phiếu đã chuyển HT đạt': team_df['HT_Dat'],
+            'SL phiếu đã chuyển HT không đạt': team_df['HT_Khong_Dat'],
             'Số lượng phiếu không đạt': team_df['SM4'] - team_df['SM3'],
             'Số phiếu không đạt tăng lên so với hôm qua': team_df['Tang_Khong_Dat_BRCD'].apply(lambda x: f"=(SM4-SM3)hôm nay - (SM4-SM3)hôm qua" if pd.isna(x) else f"{x:+.0f}"),
             'Tỷ lệ đạt sau giảm trừ lỗi do hạ tầng': team_df['Ty_Le_Sau_Giam_Tru'].apply(lambda x: f"{x:.2f}%")
@@ -762,12 +762,12 @@ def render_charts_page():
             Tong_SM1=('SM1', 'sum'), Tong_SM2=('SM2', 'sum'),
             Tong_SM3=('SM3', 'sum'), Tong_SM4=('SM4', 'sum'),
             Tong_SM5=('SM5', 'sum'), Tong_SM6=('SM6', 'sum'),
-            Tong_SM4_Dat_HT=('SM4_Dat_HT', 'sum'), Tong_SM4_Khong_Dat_HT=('SM4_Khong_Dat_HT', 'sum')
+            Tong_HT_Dat=('HT_Dat', 'sum'), Tong_HT_Khong_Dat=('HT_Khong_Dat', 'sum')
         ).reset_index()
         tt_daily['Ngay_Bao_Cao'] = pd.to_datetime(tt_daily['Ngay_Bao_Cao'])
         
         tt_daily['Tu_So'] = tt_daily['Tong_SM3']
-        tt_daily['Mau_So'] = tt_daily['Tong_SM4'] - tt_daily['Tong_SM4_Dat_HT']
+        tt_daily['Mau_So'] = tt_daily['Tong_SM4'] - tt_daily['Tong_HT_Dat']
         tt_daily['brcd'] = (tt_daily['Tu_So'] / tt_daily['Mau_So'] * 100).fillna(0)
         tt_daily['brcd_lap'] = (tt_daily['Tong_SM5'] / tt_daily['Tong_SM6'] * 100).fillna(0)
         tt_daily['clcd'] = (tt_daily['Tong_SM1'] / tt_daily['Tong_SM2'] * 100).fillna(0)
@@ -803,12 +803,12 @@ def render_charts_page():
             Tong_SM1=('SM1', 'sum'), Tong_SM2=('SM2', 'sum'),
             Tong_SM3=('SM3', 'sum'), Tong_SM4=('SM4', 'sum'),
             Tong_SM5=('SM5', 'sum'), Tong_SM6=('SM6', 'sum'),
-            Tong_SM4_Dat_HT=('SM4_Dat_HT', 'sum'), Tong_SM4_Khong_Dat_HT=('SM4_Khong_Dat_HT', 'sum')
+            Tong_HT_Dat=('HT_Dat', 'sum'), Tong_HT_Khong_Dat=('HT_Khong_Dat', 'sum')
         ).reset_index()
         to_daily['Ngay_Bao_Cao'] = pd.to_datetime(to_daily['Ngay_Bao_Cao'])
         
         to_daily['Tu_So'] = to_daily['Tong_SM3']
-        to_daily['Mau_So'] = to_daily['Tong_SM4'] - to_daily['Tong_SM4_Dat_HT']
+        to_daily['Mau_So'] = to_daily['Tong_SM4'] - to_daily['Tong_HT_Dat']
         to_daily['brcd'] = (to_daily['Tu_So'] / to_daily['Mau_So'] * 100).fillna(0)
         to_daily['brcd_lap'] = (to_daily['Tong_SM5'] / to_daily['Tong_SM6'] * 100).fillna(0)
         to_daily['clcd'] = (to_daily['Tong_SM1'] / to_daily['Tong_SM2'] * 100).fillna(0)
