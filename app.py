@@ -168,6 +168,7 @@ with st.sidebar:
 st.markdown("### 📅 Bộ Lọc Thời Gian")
 
 yesterday = datetime.now() - timedelta(days=1)
+today_dt = datetime.now()
 
 if st.session_state.page in ['pending_bhsc', 'pending_pttb', 'pending_brcd_lap', 'pending_brcd_khong_dat']:
     import calendar
@@ -178,24 +179,23 @@ if st.session_state.page in ['pending_bhsc', 'pending_pttb', 'pending_brcd_lap',
     
     with col_date:
         if date_filter_type == "Theo Ngày":
-            selected_date = st.date_input("Chọn ngày:", yesterday)
+            selected_date = st.date_input("Chọn ngày:", today_dt)
             start_date = selected_date.strftime("%Y-%m-%d")
             end_date = start_date
         elif date_filter_type == "Theo Tháng":
-            today = datetime.now()
             col_m, col_y = st.columns(2)
             with col_m:
-                selected_month = st.selectbox("Tháng:", range(1, 13), index=today.month - 1)
+                selected_month = st.selectbox("Tháng:", range(1, 13), index=today_dt.month - 1)
             with col_y:
-                selected_year = st.selectbox("Năm:", range(2023, today.year + 2), index=today.year - 2023)
+                selected_year = st.selectbox("Năm:", range(2023, today_dt.year + 2), index=today_dt.year - 2023)
             
             last_day = calendar.monthrange(selected_year, selected_month)[1]
             start_date = f"{selected_year}-{selected_month:02d}-01"
             end_date = f"{selected_year}-{selected_month:02d}-{last_day:02d}"
         else:
-            selected_range = st.date_input("Chọn khoảng thời gian:", [yesterday, yesterday])
+            selected_range = st.date_input("Chọn khoảng thời gian:", [today_dt, today_dt])
             if isinstance(selected_range, tuple) or isinstance(selected_range, list):
-                start_date = selected_range[0].strftime("%Y-%m-%d") if len(selected_range) > 0 else yesterday.strftime("%Y-%m-%d")
+                start_date = selected_range[0].strftime("%Y-%m-%d") if len(selected_range) > 0 else today_dt.strftime("%Y-%m-%d")
                 end_date = selected_range[1].strftime("%Y-%m-%d") if len(selected_range) > 1 else start_date
             else:
                 start_date = selected_range.strftime("%Y-%m-%d")
