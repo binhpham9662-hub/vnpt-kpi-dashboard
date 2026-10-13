@@ -700,10 +700,15 @@ def process_sm4_excel(file_path, date_str):
                 HT_Dat=excluded.HT_Dat, HT_Khong_Dat=excluded.HT_Khong_Dat
             ''', (date_str, ma_nv_extracted, ten_nv_extracted, to_ktdb, thang_du_lieu, sm3, sm4, data['sm3_tru'], data['sm4_tru'], data['ht_dat'], data['ht_khong_dat']))
             
-        # Update TOTAL row
+        # Update/Insert TOTAL row
         cursor.execute('''
-            UPDATE kpi_daily SET SM3=?, SM4=?, SM3_Tru=?, SM4_Tru=?, HT_Dat=?, HT_Khong_Dat=? WHERE Ngay_Bao_Cao=? AND Ma_NV='TỔNG'
-        ''', (total_file_sm3, total_file_sm4, total_file_sm3_tru, total_file_sm4_tru, total_file_ht_dat, total_file_ht_khong_dat, date_str))
+            INSERT INTO kpi_daily (Ngay_Bao_Cao, Ma_NV, Ten_NV, To_KTDB, Thang_Du_Lieu, SM3, SM4, SM3_Tru, SM4_Tru, HT_Dat, HT_Khong_Dat)
+            VALUES (?, 'TỔNG', '', 'Không xác định', ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(Ngay_Bao_Cao, Ma_NV) DO UPDATE SET
+            SM3=excluded.SM3, SM4=excluded.SM4,
+            SM3_Tru=excluded.SM3_Tru, SM4_Tru=excluded.SM4_Tru,
+            HT_Dat=excluded.HT_Dat, HT_Khong_Dat=excluded.HT_Khong_Dat
+        ''', (date_str, thang_du_lieu, total_file_sm3, total_file_sm4, total_file_sm3_tru, total_file_sm4_tru, total_file_ht_dat, total_file_ht_khong_dat))
             
         conn.commit()
         conn.close()
