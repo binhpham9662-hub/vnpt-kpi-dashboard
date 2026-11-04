@@ -35,6 +35,44 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         border: 1px solid #e0e0e0;
     }
+    .custom-kpi-card {
+        background-color: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        border: 1px solid #e0e0e0;
+        margin-bottom: 8px;
+    }
+    .custom-kpi-label {
+        font-size: 0.95rem;
+        color: #4b5563;
+        font-weight: 500;
+        margin-bottom: 6px;
+    }
+    .custom-kpi-value {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #111827;
+        line-height: 1.2;
+    }
+    .custom-kpi-delta {
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-top: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 8px;
+        border-radius: 6px;
+    }
+    .custom-kpi-delta.success {
+        color: #059669;
+        background-color: #ecfdf5;
+    }
+    .custom-kpi-delta.danger {
+        color: #dc2626;
+        background-color: #fef2f2;
+    }
     .stDataFrame {
         background-color: white;
         border-radius: 8px;
@@ -368,6 +406,20 @@ def render_pending_tickets_page(loai_phieu):
             """
             st.markdown(css + html_table, unsafe_allow_html=True)
 
+def render_kpi_card(label: str, value: str, delta: str, is_success: bool):
+    status_class = "success" if is_success else "danger"
+    delta_icon = "▲" if is_success else "▼"
+    card_html = f"""
+    <div class="custom-kpi-card">
+        <div class="custom-kpi-label">{label}</div>
+        <div class="custom-kpi-value">{value}</div>
+        <div class="custom-kpi-delta {status_class}">
+            <span>{delta_icon}</span> {delta}
+        </div>
+    </div>
+    """
+    st.markdown(card_html, unsafe_allow_html=True)
+
 def render_main_page():
 
     # --- Calculations ---
@@ -415,11 +467,11 @@ def render_main_page():
     m1, m2, m3 = st.columns(3)
     
     with m1:
-        st.metric(
+        render_kpi_card(
             label="C1.1 BRCĐ không tính hẹn", 
             value=f"{ty_le_brcd:.2f}%", 
             delta="Mục tiêu: ≥ 85%",
-            delta_color="normal" if ty_le_brcd >= 85 else "inverse"
+            is_success=ty_le_brcd >= 85
         )
         st.caption(f"🕒 1 ngày trước: **{y_ty_le_brcd:.2f}%**<br>🕒 2 ngày trước: **{d2_ty_le_brcd:.2f}%**<br>🕒 3 ngày trước: **{d3_ty_le_brcd:.2f}%**<br>🕒 7 ngày trước: **{d7_ty_le_brcd:.2f}%**", unsafe_allow_html=True)
         if st.button("👁 Xem bảng BRCĐ", use_container_width=True):
@@ -427,11 +479,11 @@ def render_main_page():
             st.rerun()
             
     with m2:
-        st.metric(
+        render_kpi_card(
             label="C1.2 BRCĐ lặp lại", 
             value=f"{ty_le_brcd_lap:.2f}%", 
             delta="Mục tiêu: ≤ 2.5%",
-            delta_color="inverse" if ty_le_brcd_lap > 2.5 else "normal"
+            is_success=ty_le_brcd_lap <= 2.5
         )
         st.caption(f"🕒 1 ngày trước: **{y_ty_le_brcd_lap:.2f}%**<br>🕒 2 ngày trước: **{d2_ty_le_brcd_lap:.2f}%**<br>🕒 3 ngày trước: **{d3_ty_le_brcd_lap:.2f}%**<br>🕒 7 ngày trước: **{d7_ty_le_brcd_lap:.2f}%**", unsafe_allow_html=True)
         if st.button("👁 Xem bảng BRCĐ Lặp", use_container_width=True):
@@ -439,11 +491,11 @@ def render_main_page():
             st.rerun()
             
     with m3:
-        st.metric(
+        render_kpi_card(
             label="C1.1 CLCĐ FiberVNN, MyTV", 
             value=f"{ty_le_clcd:.2f}%", 
             delta="Mục tiêu: ≥ 99%",
-            delta_color="normal" if ty_le_clcd >= 99 else "inverse"
+            is_success=ty_le_clcd >= 99
         )
         st.caption(f"🕒 1 ngày trước: **{y_ty_le_clcd:.2f}%**<br>🕒 2 ngày trước: **{d2_ty_le_clcd:.2f}%**<br>🕒 3 ngày trước: **{d3_ty_le_clcd:.2f}%**<br>🕒 7 ngày trước: **{d7_ty_le_clcd:.2f}%**", unsafe_allow_html=True)
         if st.button("👁 Xem bảng CLCĐ", use_container_width=True):
